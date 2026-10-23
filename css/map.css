@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Leaflet & OpenStreetMap Custom Styling
+   Responsive Map, Day-Coded Numbered Markers, Crowd Shading, Popups
+   ========================================================================== */
+
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  background-color: #e5e7eb;
+}
+
+.map-container {
+  width: 100%;
+  height: 420px;
+  z-index: 10;
+}
+
+@media (min-width: 768px) {
+  .map-container {
+    height: 520px;
+  }
+}
+
+.map-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 400;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
+}
+
+.map-toggle-btn {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.map-toggle-btn:hover {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-primary-light);
+}
+
+.map-toggle-btn.active {
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* Numbered Day Marker Pin */
+.custom-day-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-weight: var(--font-bold);
+  font-size: 13px;
+}
+
+.custom-day-pin span {
+  transform: rotate(45deg);
+}
+
+/* Day Colors */
+.pin-day-1 { background-color: #0d5c58; }
+.pin-day-2 { background-color: #d97706; }
+.pin-day-3 { background-color: #0284c7; }
+.pin-day-4 { background-color: #7c3aed; }
+.pin-day-5 { background-color: #db2777; }
+
+/* Crowd-aware markers */
+.crowd-marker-popular {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4) !important;
+}
+
+.crowd-marker-offbeat {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Leaflet Popup Styling */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+  font-family: var(--font-body) !important;
+}
+
+.map-popup-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.map-popup-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.map-popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}

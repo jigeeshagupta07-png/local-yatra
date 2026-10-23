@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YatraLocal Itinerary Engine Unit Tests</title>
+  <style>
+    body { font-family: monospace; padding: 24px; background: #1e293b; color: #f8fafc; }
+    .pass { color: #4ade80; font-weight: bold; }
+    .fail { color: #f87171; font-weight: bold; }
+    .test-box { background: #0f172a; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h1>🧪 YatraLocal Itinerary Generator Test Suite</h1>
+  <p>Running plain browser assertions against /js/itinerary.js...</p>
+  <div id="results"></div>
+
+  <script type="module">
+    import { generateItinerary, fetchDestinations } from '/js/itinerary.js';
+
+    const resultsEl = document.getElementById('results');
+
+    function assert(name, condition, details = '') {
+      const div = document.createElement('div');
+      div.className = 'test-box';
+      if (condition) {
+        div.innerHTML = `<span class="pass">✓ PASS:</span> ${name} ${details ? `<br><small style="color:#94a3b8;">${details}</small>` : ''}`;
+        console.log(`%c✓ PASS: ${name}`, 'color: #4ade80; font-weight: bold;', details);
+      } else {
+        div.innerHTML = `<span class="fail">✗ FAIL:</span> ${name} ${details ? `<br><small style="color:#f87171;">${details}</small>` : ''}`;
+        console.error(`✗ FAIL: ${name}`, details);
+      }
+      resultsEl.appendChild(div);
+    }
+
+    async function runTests() {
+      const destinations = await fetchDestinations();
+      assert('Destinations loaded successfully', destinations.length >= 6, `Loaded ${destinations.length} destinations`);
+
+      // Test 1: Senior Mode Limits
+      const seniorPrefs = {
+        destination: 'manali',
+        budget: 15000,
+        days: 3,
+        travellers: 1,
+        moods: ['Relaxed'],
+        accessibility: { seniorFriendly: true, minimalWalking: true }
+      };
+      const seniorPlan = generateItinerary(seniorPrefs, destinations);
+      const allSeniorDaysValid = seniorPlan.days.every(d => d.activities.length === 1 && d.activities[0].seniorFriendly);
+      assert(
+        'Senior Mode Pace: Exactly 1 activity per day and 100% seniorFriendly',
+        allSeniorDaysValid,
+        `Days verified: ${seniorPlan.days.length}, activities per day: ${seniorPlan.days[0].activities.length}`
+      );
+
+      // Test 2: Budget Respected Status
+      const highBudgetPrefs = {
+        destination: 'jaipur',
+        budget: 50000,
+        days: 3,
+        travellers: 2,
+        moods: ['Cultural'],
+        accessibility: {}
+      };
+      const highPlan = generateItinerary(highBudgetPrefs, destinations);
+      assert(
+        'Budget respected calculation: within_budget flag correct',
+        highPlan.budgetStatus === 'within_budget' && highPlan.totalCost <= 50000,
+        `Total: ₹${highPlan.totalCost} <= Budget: ₹50,000`
+      );
+
+      // Test 3: Mood Matching
+      const spiritualPrefs = {
+        destination: 'varanasi',
+        budget: 12000,
+        days: 2,
+        travellers: 1,
+        moods: ['Spiritual/Pilgrimage'],
+        accessibility: {}
+      };
+      const spiritualPlan = generateItinerary(spiritualPrefs, destinations);
+      const hasSpiritual = spiritualPlan.days.some(d => d.activities.some(a => a.category.includes('Spiritual/Pilgrimage')));
+      assert(
+        'Mood Matching: Prioritizes matching Spiritual/Pilgrimage activities',
+        hasSpiritual,
+        `Found matching spiritual activities in ${spiritualPlan.destination.name}`
+      );
+
+      // Test 4: 1-Day Trip Edge Case
+      const oneDayPrefs = {
+        destination: 'hampi',
+        budget: 4000,
+        days: 1,
+        travellers: 1,
+        moods: ['Cultural'],
+        accessibility: {}
+      };
+      const oneDayPlan = generateItinerary(oneDayPrefs, destinations);
+      assert(
+        '1-Day Trip Handling: Generates exactly 1 day with up to 3 activities',
+        oneDayPlan.days.length === 1 && oneDayPlan.days[0].activities.length <= 3,
+        `Day 1 activities count: ${oneDayPlan.days[0].activities.length}`
+      );
+
+      // Test 5: Local Tip Inclusion
+      const hasLocalTips = seniorPlan.days.every(d => typeof d.localTip === 'string' && d.localTip.length > 10);
+      assert(
+        'Local Tips Rule: Every day contains a local community tip',
+        hasLocalTips,
+        `Sample tip: "${seniorPlan.days[0].localTip}"`
+      );
+    }
+
+    runTests();
+  </script>
+</body>
+</html>
