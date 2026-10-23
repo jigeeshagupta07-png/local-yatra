@@ -6,6 +6,7 @@
 
 import { store } from '../js/store.js';
 import { YatraMap, calculateHaversineKm } from '../js/map.js';
+import { getReviewsForTarget, calculateRatingSummary, renderReviewsSection } from '../js/reviews.js';
 
 let hostsData = { stays: [], guides: [] };
 let activeTab = 'stays'; // 'stays' | 'guides'
@@ -312,6 +313,12 @@ function renderListings() {
     const dynamicOffer = publishedOffers.find(o => o.stayId === item.id);
     const discount = dynamicOffer ? dynamicOffer.discountPercent : item.offPeakDiscountPercent;
 
+    // Compute real-time reviews & rating from merged data
+    const itemReviews = getReviewsForTarget(isStay ? 'stay' : 'guide', item.id);
+    const itemSummary = calculateRatingSummary(itemReviews);
+    const displayRating = itemSummary.count > 0 ? itemSummary.average : item.rating;
+    const displayCount = itemSummary.count > 0 ? itemSummary.count : item.reviewsCount;
+
     card.innerHTML = `
       <!-- Off season ribbon -->
       ${discount ? `
@@ -361,7 +368,7 @@ function renderListings() {
               </span>
             </div>
             <div style="font-size: 11px; color: var(--color-text-muted);">
-              ★ ${item.rating} (${item.reviewsCount} reviews)
+              ★ ${displayRating} (${displayCount} reviews)
             </div>
           </div>
 
@@ -454,9 +461,12 @@ function openDetailModal(item, type) {
             </div>
           </div>
 
-          <div style="font-size: 11px; color: var(--color-text-muted); font-style: italic;">
+          <div style="font-size: 11px; color: var(--color-text-muted); font-style: italic; margin-bottom: 16px;">
             Note: All hosts and stories are fictional prototype data representing local tourism micro-entrepreneurs.
           </div>
+
+          <!-- Reviews & Feedback Container (Phase 15) -->
+          <div id="modal-reviews-mount"></div>
         </div>
 
         <div class="modal-footer">
@@ -470,6 +480,12 @@ function openDetailModal(item, type) {
   const closeFn = () => { container.innerHTML = ''; };
   document.getElementById('btn-close-detail')?.addEventListener('click', closeFn);
   document.getElementById('btn-close-modal-footer')?.addEventListener('click', closeFn);
+
+  // Mount Reviews & Feedback Section (Phase 15)
+  const reviewsMount = document.getElementById('modal-reviews-mount');
+  if (reviewsMount) {
+    renderReviewsSection(reviewsMount, isStay ? 'stay' : 'guide', item.id, item.name);
+  }
 
   document.getElementById('btn-modal-select')?.addEventListener('click', () => {
     if (isStay) {

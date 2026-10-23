@@ -8,6 +8,7 @@ import { store } from '../js/store.js';
 import { llmPlanProvider } from '../js/llmProvider.js';
 import { YatraMap } from '../js/map.js';
 import { fetchDestinations } from '../js/itinerary.js';
+import { renderReviewsSection } from '../js/reviews.js';
 
 let currentPlan = null;
 let yatraMapInstance = null;
@@ -111,6 +112,9 @@ export function renderItineraryView() {
             </div>
           </div>
         </div>
+
+        <!-- Destination Reviews & Feedback (Phase 15) -->
+        <div id="destination-reviews-mount"></div>
       </div>
 
       <!-- Sticky Bottom Cost & Booking Summary Bar -->
@@ -281,6 +285,12 @@ function renderPlanDetails(plan) {
       swapActivityInPlan(dayNum, actId);
     });
   });
+
+  // Render Destination Feedback & Reviews (Phase 15)
+  const destReviewsMount = document.getElementById('destination-reviews-mount');
+  if (destReviewsMount && dest) {
+    renderReviewsSection(destReviewsMount, 'destination', dest.id, `${dest.name} Destination`);
+  }
 }
 
 function swapActivityInPlan(dayNum, actId) {

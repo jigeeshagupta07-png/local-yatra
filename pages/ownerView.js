@@ -5,6 +5,7 @@
  */
 
 import { store } from '../js/store.js';
+import { getReviewsForTarget, calculateRatingSummary } from '../js/reviews.js';
 
 let isOwnerLoggedIn = true;
 let hostBookings = [];
@@ -244,6 +245,35 @@ export function renderOwner() {
         </div>
       </div>
 
+      <!-- Guest Reviews & Reputation (Phase 15) -->
+      <div class="card" style="margin-bottom: var(--space-8);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem;">Guest Feedback & Reputation</h3>
+            <div style="font-size: var(--text-xs); color: var(--color-text-muted);">
+              Read-only view: Hosts can monitor feedback but cannot edit or delete traveller reviews.
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.4rem; font-weight: 700; color: #d97706;" id="host-avg-rating">★ 4.9</span>
+            <span class="badge badge-verified" id="host-reviews-badge">0 Reviews</span>
+          </div>
+        </div>
+
+        <!-- Tag Summary -->
+        <div style="background: var(--color-surface-subtle); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--color-border);">
+          <strong style="font-size: 12px; color: var(--color-primary); display: block; margin-bottom: 6px;">TOP TRAVELLER PRAISE TAGS:</strong>
+          <div id="host-tags-summary" style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Recent Reviews List -->
+        <div id="host-recent-reviews" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
       <!-- Concept Teaser: Business Model Card -->
       <div class="card" style="background: #f8fafc; border: 1.5px dashed #94a3b8; padding: var(--space-6);">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
@@ -308,6 +338,60 @@ export async function initOwnerEvents() {
           </td>
         `;
         tableBody.appendChild(tr);
+      });
+    }
+  }
+
+  // Populate Host Reviews & Tag Summary (Phase 15)
+  const hostStayId = 'stay-manali-deodar';
+  const hostReviews = getReviewsForTarget('stay', hostStayId);
+  const hostSummary = calculateRatingSummary(hostReviews);
+
+  const avgRatingEl = document.getElementById('host-avg-rating');
+  const reviewsBadgeEl = document.getElementById('host-reviews-badge');
+  const tagsSummaryEl = document.getElementById('host-tags-summary');
+  const recentReviewsEl = document.getElementById('host-recent-reviews');
+
+  if (avgRatingEl) avgRatingEl.textContent = `★ ${hostSummary.average || 4.9}`;
+  if (reviewsBadgeEl) reviewsBadgeEl.textContent = `${hostSummary.count} Total Reviews`;
+
+  if (tagsSummaryEl) {
+    tagsSummaryEl.innerHTML = '';
+    if (hostSummary.highlights.length > 0) {
+      hostSummary.highlights.forEach(t => {
+        const badge = document.createElement('span');
+        badge.className = 'badge badge-local';
+        badge.textContent = `✓ ${t}`;
+        tagsSummaryEl.appendChild(badge);
+      });
+    } else {
+      tagsSummaryEl.innerHTML = '<span style="font-size: 12px; color: var(--color-text-muted);">No tags yet</span>';
+    }
+  }
+
+  if (recentReviewsEl) {
+    recentReviewsEl.innerHTML = '';
+    if (hostReviews.length === 0) {
+      recentReviewsEl.innerHTML = '<div style="font-size: 12px; color: var(--color-text-muted);">No reviews received yet.</div>';
+    } else {
+      hostReviews.slice(0, 4).forEach(r => {
+        const item = document.createElement('div');
+        item.style.cssText = 'background: #ffffff; border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; font-size: 13px;';
+
+        const head = document.createElement('div');
+        head.style.cssText = 'display: flex; justify-content: space-between; margin-bottom: 4px;';
+        head.innerHTML = `
+          <strong>${r.name || 'Traveller'}</strong>
+          <span style="color: #d97706; font-weight: 700;">★ ${r.rating}</span>
+        `;
+        item.appendChild(head);
+
+        const comment = document.createElement('p');
+        comment.style.cssText = 'margin: 0; color: var(--color-text-secondary); line-height: 1.4;';
+        comment.textContent = r.comment; // Strictly textContent (XSS-safe)
+        item.appendChild(comment);
+
+        recentReviewsEl.appendChild(item);
       });
     }
   }

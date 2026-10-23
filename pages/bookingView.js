@@ -4,6 +4,7 @@
  */
 
 import { store } from '../js/store.js';
+import { openReviewModal } from '../js/reviews.js';
 
 let bookingStep = 1;
 let bookingData = {
@@ -436,6 +437,9 @@ function renderCurrentBookingStep() {
           <button id="btn-share-family" class="btn btn-secondary">
             💬 Share with Family
           </button>
+          <button id="btn-booking-review" class="btn btn-secondary" style="border-color: #d97706; color: #b45309;">
+            ⭐ Write a Review
+          </button>
           <a href="#/sos" class="btn btn-primary" style="background: #b91c1c; border-color: #991b1b;">
             🛡️ Set Up SOS Emergency Contacts
           </a>
@@ -450,6 +454,18 @@ function renderCurrentBookingStep() {
     // .ics calendar generation
     document.getElementById('btn-download-ics')?.addEventListener('click', () => {
       generateIcsFile(latest, days);
+    });
+
+    // Write a review button
+    document.getElementById('btn-booking-review')?.addEventListener('click', () => {
+      openReviewModal(
+        'stay',
+        latest.stayId || 'stay-manali-deodar',
+        latest.stayName || 'Local Homestay',
+        () => {
+          alert('Thank you for rating your stay!');
+        }
+      );
     });
 
     // Share link

@@ -7,12 +7,14 @@ import { store } from './store.js';
 import { initRouter } from './router.js';
 import { initI18n, toggleLanguage } from './i18n.js';
 import { setupSosFloatingButton } from './sos.js';
+import { initReviews } from './reviews.js';
 
 export async function bootstrapApp() {
   console.log('[YatraLocal] Initializing application...');
 
-  // Initialize i18n
+  // Initialize i18n and reviews
   await initI18n();
+  await initReviews();
 
   // Restore Saral Mode class
   if (store.get().saralMode) {

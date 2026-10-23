@@ -93,6 +93,17 @@ Prototype verification checklist covering all 14 development phases for **YatraL
 - [x] **Phase 14: Final Verification & End-to-End Test**
   - [x] End-to-end user flow verified from Home -> Plan -> Itinerary -> Stays -> Booking -> Owner Dashboard -> SOS.
 
+- [x] **Phase 15: User Feedback & Reviews**
+  - [x] `/data/reviews.json`: 3-5 seed sample reviews per stay, guide, and destination with `"isSample": true` and sample badges.
+  - [x] `/js/reviews.js`: Merges seed reviews with `localStorage` (`yl_reviews`), computes real-time 5-bar rating distribution and top tag highlights.
+  - [x] Review submission modal with accessible 1-5 star radiogroup, tag selector, char counter (10-300), XSS-safe `textContent` rendering, and browser rate limiting.
+  - [x] Listing cards update with live aggregate rating and review counts.
+  - [x] Detail drawer embeds 5-bar breakdown, traveller highlights, reviews list with filters (*All, 5★, 4★+, Senior-friendly, Hindi*) and sorting (*Newest, Highest, Lowest*).
+  - [x] Host Dashboard (`#/owner`): Displays average rating, total reviews, top tags, and read-only recent guest feedback.
+  - [x] Saral Mode (`#/saral`): One simple summary (big stars, "X travellers rated this"), Web Speech read-aloud button, and 3-button accessible rating (*Good / Okay / Not good*).
+  - [x] Bilingual English & Hindi translations in `data/i18n.json`.
+  - [x] Honesty disclaimer: "Reviews in this prototype are stored on your device only. Seed reviews are sample data."
+
 ---
 
 ## 🔍 How to Test Each Feature

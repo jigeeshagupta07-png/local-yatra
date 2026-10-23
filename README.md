@@ -138,7 +138,15 @@ The application will be live at:
 | **SOS Alerting** | **Real Geolocation API** (`watchPosition`), live tracking URL, 6-hour expiring session token, native `tel:` hotlines. | Real Twilio dispatch when keys supplied; fallback to `sms:` & `wa.me` deep links. |
 | **Accessibility** | **Real Web Speech API** text-to-speech (`speechSynthesis`) and voice input (`SpeechRecognition`) in EN/हिंदी. | Visual high-contrast 22px+ typography and 64px tap targets. |
 | **Booking & Payments** | **Real `.ics` calendar generation**, state persistence, and owner sync. | **Simulated payment checkout**; no real credit card or UPI funds charged. |
+| **Reviews & Feedback** | **Local browser storage (`yl_reviews`)**, 5-bar rating distribution, top tag highlights, Saral voice summary. | Reviews in this prototype are stored on your device only. Seed reviews are sample data. |
 | **Host Data** | Accurate geographic and pricing models across 6 destinations. | Fictional names/host stories representing real micro-entrepreneurs. |
+
+---
+
+## ⚠️ Known Limitations
+1. **Reviews Device-Only Storage:** Reviews in this prototype are stored on your device (`localStorage`) only. Seed reviews are sample data.
+2. **Simulated Payments:** No real banking or UPI transactions are executed during checkout; the payment step is simulated for hackathon demonstration.
+3. **Emergency SOS Disclaimer:** Real-time SOS alert dispatches via Twilio only when credentials are provided in `.env`; otherwise it operates via native `sms:`/`wa.me` deep links. It is not an automated replacement for national emergency dispatch services.
 
 ---
 
@@ -158,11 +166,12 @@ We actively track four prototype metrics directly in `server.py` and display the
 
 ## 🛣️ Future Roadmap
 
-1. **Govt DigiLocker Verification:** Aadhaar-backed KYC for homestay hosts and verified local guides.
-2. **Real Payment Gateway:** UPI AutoPay and escrow payment releases upon check-in.
-3. **WhatsApp / IVR Voice Booking:** Toll-free feature phone booking for non-smartphone users.
-4. **Regional Indian Languages:** Expand beyond English and Hindi to Tamil, Telugu, Kannada, Bengali, and Marathi.
-5. **Hyperlocal Transit:** Integration with state transport corporations (HRTC, UPSRTC, KSRTC) for verified rural bus timings.
+1. **Shared Reviews & User Login (Phase 17 Scope):** Cross-device verified traveller reviews powered by database storage and authentication.
+2. **Govt DigiLocker Verification:** Aadhaar-backed KYC for homestay hosts and verified local guides.
+3. **Real Payment Gateway:** UPI AutoPay and escrow payment releases upon check-in.
+4. **WhatsApp / IVR Voice Booking:** Toll-free feature phone booking for non-smartphone users.
+5. **Regional Indian Languages:** Expand beyond English and Hindi to Tamil, Telugu, Kannada, Bengali, and Marathi.
+6. **Hyperlocal Transit:** Integration with state transport corporations (HRTC, UPSRTC, KSRTC) for verified rural bus timings.
 
 ---
 

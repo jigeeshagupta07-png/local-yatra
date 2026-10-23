@@ -7,6 +7,7 @@
 import { store } from '../js/store.js';
 import { speakText, stopSpeech, initSpeechRecognition } from '../js/speech.js';
 import { generateItinerary, fetchDestinations } from '../js/itinerary.js';
+import { renderSaralReviewSummary } from '../js/reviews.js';
 
 let step = 1; // 1 to 5, then 6 for results
 let saralPrefs = {
@@ -465,6 +466,9 @@ function renderStep() {
           </div>
         </div>
 
+        <!-- Accessible Reviews & Feedback Summary (Phase 15) -->
+        <div id="saral-reviews-mount"></div>
+
         <!-- Single Big Booking Action -->
         <div style="margin-top: 32px;">
           <a href="#/booking" class="btn btn-primary saral-action-btn" style="width: 100%; font-size: 1.5rem; min-height: 72px; background: #059669; border-color: #047857; box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);">
@@ -473,6 +477,11 @@ function renderStep() {
         </div>
       </div>
     `;
+
+    const saralRevMount = document.getElementById('saral-reviews-mount');
+    if (saralRevMount) {
+      renderSaralReviewSummary(saralRevMount, 'stay', stay?.id || 'stay-manali-deodar');
+    }
   }
 }
 
