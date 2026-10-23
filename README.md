@@ -25,6 +25,7 @@ Mainstream online travel agencies (OTAs) in India suffer from three fundamental 
 - 👵 **Saral Mode (सरल मोड):** 22px+ typography, 64px+ oversized touch targets, Web Speech API (`speechSynthesis`) audio readouts, speech recognition, and a simplified 5-step wizard.
 - 👨‍👩‍👧 **Family-Assisted Booking:** Enables children or grandchildren to book remotely on behalf of travelling elders, with auto-synced confirmations and mobility preferences.
 - 📊 **Host Owner Dashboard:** Zero-code management suite for homestay owners with plain SVG demand gap charts and an off-season offer builder synced in real-time to traveller listings.
+- 🌦️ **Seasonal Demand Insights & Live Advisories (Phase 16):** 12-month demand curve (Off-season 🌿 vs On-season 🔥). Features live Open-Meteo weather alerts for on-season peaks, crowd-dispersal alternatives, and host discount recovery ribbons.
 - 🛡️ **Safety SOS System:** 2-second press-and-hold trigger with a 5-second cancel countdown, continuous browser GPS tracking, official hotlines (112, 100, 108), and a dedicated family live-tracking link (`/track.html?id=TOKEN`).
 - 💬 **Ask YatraLocal Conversational Refinement:** Refines itinerary days via natural language commands (e.g., *"Make Day 2 slower"*) with strict candidate ID validation.
 - 🌐 **Bilingual EN / हिंदी Support:** One-tap toggle for all screens and voice announcements.
@@ -144,9 +145,10 @@ The application will be live at:
 ---
 
 ## ⚠️ Known Limitations
-1. **Reviews Device-Only Storage:** Reviews in this prototype are stored on your device (`localStorage`) only. Seed reviews are sample data.
-2. **Simulated Payments:** No real banking or UPI transactions are executed during checkout; the payment step is simulated for hackathon demonstration.
-3. **Emergency SOS Disclaimer:** Real-time SOS alert dispatches via Twilio only when credentials are provided in `.env`; otherwise it operates via native `sms:`/`wa.me` deep links. It is not an automated replacement for national emergency dispatch services.
+1. **Demand Levels are Estimates:** Demand levels ("low" | "medium" | "high") are estimates based on general seasonal travel patterns, not live booking data. Host off-season offers are demo samples. Weather forecast is credited to Open-Meteo.
+2. **Reviews Device-Only Storage:** Reviews in this prototype are stored on your device (`localStorage`) only. Seed reviews are sample data.
+3. **Simulated Payments:** No real banking or UPI transactions are executed during checkout; the payment step is simulated for hackathon demonstration.
+4. **Emergency SOS Disclaimer:** Real-time SOS alert dispatches via Twilio only when credentials are provided in `.env`; otherwise it operates via native `sms:`/`wa.me` deep links. It is not an automated replacement for national emergency dispatch services.
 
 ---
 
@@ -166,12 +168,13 @@ We actively track four prototype metrics directly in `server.py` and display the
 
 ## 🛣️ Future Roadmap
 
-1. **Shared Reviews & User Login (Phase 17 Scope):** Cross-device verified traveller reviews powered by database storage and authentication.
-2. **Govt DigiLocker Verification:** Aadhaar-backed KYC for homestay hosts and verified local guides.
-3. **Real Payment Gateway:** UPI AutoPay and escrow payment releases upon check-in.
-4. **WhatsApp / IVR Voice Booking:** Toll-free feature phone booking for non-smartphone users.
-5. **Regional Indian Languages:** Expand beyond English and Hindi to Tamil, Telugu, Kannada, Bengali, and Marathi.
-6. **Hyperlocal Transit:** Integration with state transport corporations (HRTC, UPSRTC, KSRTC) for verified rural bus timings.
+1. **Real Demand & Booking Integrations:** Real demand data from host bookings and state tourism board statistics replacing general estimates.
+2. **Shared Reviews & User Login (Phase 17 Scope):** Cross-device verified traveller reviews powered by database storage and authentication.
+3. **Govt DigiLocker Verification:** Aadhaar-backed KYC for homestay hosts and verified local guides.
+4. **Real Payment Gateway:** UPI AutoPay and escrow payment releases upon check-in.
+5. **WhatsApp / IVR Voice Booking:** Toll-free feature phone booking for non-smartphone users.
+6. **Regional Indian Languages:** Expand beyond English and Hindi to Tamil, Telugu, Kannada, Bengali, and Marathi.
+7. **Hyperlocal Transit:** Integration with state transport corporations (HRTC, UPSRTC, KSRTC) for verified rural bus timings.
 
 ---
 

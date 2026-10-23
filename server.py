@@ -345,6 +345,10 @@ class YatraLocalHandler(http.server.SimpleHTTPRequestHandler):
             moods = body.get("moods", ["Relaxed", "Cultural"])
             accessibility = body.get("accessibility", {})
 
+            travel_month = body.get("travelMonth", 10)
+            season_level = body.get("seasonLevel", "medium")
+            weather_summary = body.get("weatherSummary", "")
+
             # Check if LLM integration is requested and available
             llm_api_key = os.environ.get("LLM_API_KEY") or os.environ.get("GEMINI_API_KEY")
             llm_model = os.environ.get("LLM_MODEL", "gemini-1.5-flash")
@@ -359,6 +363,8 @@ class YatraLocalHandler(http.server.SimpleHTTPRequestHandler):
                     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{llm_model}:generateContent?key={llm_api_key}"
                     prompt = f"""You are YatraLocal AI, an expert local travel planner for India.
 Destination: {dest_id}
+Travel Month: {travel_month} (Demand Level: {season_level})
+{f'Live Weather Advisory: {weather_summary}' if weather_summary else ''}
 Budget: INR {budget}
 Trip length: {days} days
 Travellers: {travellers}
@@ -367,6 +373,8 @@ Accessibility needs: {json.dumps(accessibility)}
 
 STRICT CONSTRAINT: You MUST select activities ONLY from this list of allowed activity IDs:
 {json.dumps(candidate_ids)}
+
+If seasonal demand is high, prioritize early-morning activities to beat crowds. If off-season, highlight calm cultural walks and local homestay warmth.
 
 Return strict JSON only (no markdown, no backticks, no comments) adhering to:
 {{

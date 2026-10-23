@@ -9,6 +9,7 @@ import { llmPlanProvider } from '../js/llmProvider.js';
 import { YatraMap } from '../js/map.js';
 import { fetchDestinations } from '../js/itinerary.js';
 import { renderReviewsSection } from '../js/reviews.js';
+import { getSeason, getSeasonBadgeConfig, getCurrentMonth } from '../js/season.js';
 
 let currentPlan = null;
 let yatraMapInstance = null;
@@ -36,9 +37,10 @@ export function renderItineraryView() {
         <!-- Header & AI Badge -->
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: var(--space-6);">
           <div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
               <span id="ai-status-badge" class="badge badge-simulated">Simulated AI Planner</span>
               <span class="badge badge-local" id="dest-state-badge">Himachal Pradesh</span>
+              <span id="season-itinerary-badge" style="display: none;"></span>
             </div>
             <h1 style="margin: 0; font-size: clamp(1.8rem, 4vw, 2.4rem);" id="itinerary-header-title">
               Your Customized Journey
@@ -149,10 +151,30 @@ export async function initItineraryEvents() {
 
   allDestinations = await fetchDestinations();
   const prefs = store.get().preferences;
+  const travelMonth = prefs.travelMonth || getCurrentMonth();
+
+  let seasonMeta = null;
+  try {
+    seasonMeta = await getSeason(prefs.destination, travelMonth);
+    const seasonBadgeEl = document.getElementById('season-itinerary-badge');
+    if (seasonBadgeEl && seasonMeta) {
+      const badgeCfg = getSeasonBadgeConfig(seasonMeta.level);
+      seasonBadgeEl.className = `badge ${badgeCfg.tagClass}`;
+      seasonBadgeEl.textContent = `${badgeCfg.icon} ${badgeCfg.label} (${seasonMeta.monthName})`;
+      seasonBadgeEl.style.display = 'inline-flex';
+    }
+  } catch (e) {
+    console.warn('[Itinerary] Season badge error:', e);
+  }
 
   // 1-second delay for realistic prototype generation animation
   try {
-    const plan = await llmPlanProvider.generate(prefs);
+    const enrichedPrefs = {
+      ...prefs,
+      travelMonth,
+      seasonLevel: seasonMeta?.level || 'medium'
+    };
+    const plan = await llmPlanProvider.generate(enrichedPrefs);
     currentPlan = plan;
     store.setItinerary(plan);
 

@@ -104,6 +104,19 @@ Prototype verification checklist covering all 14 development phases for **YatraL
   - [x] Bilingual English & Hindi translations in `data/i18n.json`.
   - [x] Honesty disclaimer: "Reviews in this prototype are stored on your device only. Seed reviews are sample data."
 
+- [x] **Phase 16: Seasonal Demand Insights (Off-Season vs On-Season)**
+  - [x] `/data/seasons.json`: 12-month demand curve ("low" | "medium" | "high"), honest reasons, and 2-3 offbeat alternatives for all 6 destinations with `"isEstimate": true`.
+  - [x] `/js/season.js`: Season engine (`getSeason`, `render12MonthDemandBar`, `getOffersForDestination`, `saveHostOffer`, `getHostOffers`) defaulting to current month with month switcher.
+  - [x] `/js/api.js`: Resilient Open-Meteo forecast API client with 5s `AbortController` timeout, 1 retry, 15-minute `sessionStorage` cache, WMO weather interpretation & travel warnings, and graceful offline fallback.
+  - [x] Season Badges & 12-Month Demand Bar: Green "Off-season: fewer crowds", Amber "Shoulder", Red "On-season: high demand", plus accessible 12-bar CSS visualizer with ARIA labels and zero layout shift.
+  - [x] Planner Month Filter: "Best time to avoid crowds" with instant reactive updates.
+  - [x] Off-Season Flow: Shows lower crowds context, homestay offers from `hosts.json` & host dashboard with `[Demo Offer]` tags, and "Book in off-season" CTA. Zero weather API calls made.
+  - [x] On-Season Flow: "Plan carefully: high demand" warning, live weather/advisories (near-future only), crowd tips, and clickable alternative destination cards.
+  - [x] Host Dashboard (`#/owner`): Destination season outlook (current + 3 months forward), proactive low-demand suggestion, and offer publisher saved to `localStorage` (`yl_host_offers`).
+  - [x] Saral Mode (`#/saral`): High-contrast single-sentence seasonal advisory ("This is a busy season. Book early." / "This is a quiet season. Good time to visit.") with Web Speech read-aloud button.
+  - [x] Bilingual Support: Complete EN and हिंदी strings in `data/i18n.json`.
+  - [x] Zero Netlify: Completely independent native Python serverless backend and vanilla JS.
+
 ---
 
 ## 🔍 How to Test Each Feature

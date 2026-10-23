@@ -7,6 +7,7 @@
 import { store } from '../js/store.js';
 import { YatraMap, calculateHaversineKm } from '../js/map.js';
 import { getReviewsForTarget, calculateRatingSummary, renderReviewsSection } from '../js/reviews.js';
+import { getSeason, getHostOffers, getSeasonBadgeConfig, getCurrentMonth } from '../js/season.js';
 
 let hostsData = { stays: [], guides: [] };
 let activeTab = 'stays'; // 'stays' | 'guides'
@@ -48,6 +49,9 @@ export function renderStaysView() {
           <button id="btn-toggle-map" class="btn btn-sm btn-secondary">🗺️ Map View</button>
         </div>
       </div>
+
+      <!-- Seasonal Demand Banner Mount -->
+      <div id="stays-season-banner" style="margin-bottom: var(--space-4);"></div>
 
       <!-- Stays vs Guides Tabs -->
       <div class="tab-list">
@@ -133,7 +137,7 @@ export async function initStaysEvents() {
     console.error('[Stays] Failed to fetch hosts.json:', e);
   }
 
-  // Fetch published owner offers from backend
+  // Fetch published owner offers from backend and merge with local host offers
   try {
     const resOffers = await fetch('/api/offers');
     if (resOffers.ok) {
@@ -142,6 +146,53 @@ export async function initStaysEvents() {
     }
   } catch (e) {
     console.warn('[Stays] Could not fetch active backend offers:', e);
+  }
+
+  // Merge localStorage host offers
+  const localHostOffers = getHostOffers();
+  publishedOffers = [...publishedOffers, ...localHostOffers];
+
+  // Populate seasonal banner
+  const destination = store.get().preferences.destination || 'manali';
+  const destName = destination.charAt(0).toUpperCase() + destination.slice(1);
+  const travelMonth = store.get().preferences.travelMonth || getCurrentMonth();
+  try {
+    const season = await getSeason(destination, travelMonth);
+    const seasonBanner = document.getElementById('stays-season-banner');
+    if (seasonBanner) {
+      const badge = getSeasonBadgeConfig(season.level);
+      if (season.isOffSeason) {
+        seasonBanner.innerHTML = `
+          <div class="season-card-off" style="margin-top: 0; padding: 12px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="badge ${badge.tagClass}">🌿 ${badge.label} (${season.monthName})</span>
+                <span style="font-size: var(--text-xs); color: #137333; margin-left: 8px; font-weight: 600;">
+                  Local hosts have published community discounts to recover off-season vacancy.
+                </span>
+              </div>
+              <span style="font-size: 11px; color: var(--color-text-muted);">Sample / Demo offers</span>
+            </div>
+          </div>
+        `;
+      } else if (season.isOnSeason) {
+        seasonBanner.innerHTML = `
+          <div class="season-card-on" style="margin-top: 0; padding: 12px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="badge ${badge.tagClass}">🔥 ${badge.label} (${season.monthName})</span>
+                <span style="font-size: var(--text-xs); color: #c5221f; margin-left: 8px; font-weight: 600;">
+                  High demand season in ${destName}. Book stays and guides early to guarantee availability.
+                </span>
+              </div>
+              <span style="font-size: 11px; color: var(--color-text-muted);">Demand Estimate</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+  } catch (err) {
+    console.warn('[Stays] Season banner error:', err);
   }
 
   selectedStay = store.get().selectedStay;
@@ -322,8 +373,8 @@ function renderListings() {
     card.innerHTML = `
       <!-- Off season ribbon -->
       ${discount ? `
-        <div style="background: var(--color-accent); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-sm); position: absolute; top: 12px; right: 12px; z-index: 2;">
-          🏷️ ${discount}% OFF-SEASON
+        <div style="background: #16a34a; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-sm); position: absolute; top: 12px; right: 12px; z-index: 2; box-shadow: var(--shadow-sm);">
+          🏷️ ${discount}% OFF-SEASON <span style="font-size: 9px; opacity: 0.9; font-weight: normal;">(Demo)</span>
         </div>
       ` : ''}
 
@@ -362,7 +413,10 @@ function renderListings() {
         <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--color-border); padding-top: 10px; margin-top: auto;">
           <div>
             <div style="font-size: 1.1rem; font-weight: 700; color: var(--color-text);">
-              ₹${item.pricePerNight || item.pricePerDay}
+              ${discount && isStay ? `
+                <span style="color: #16a34a;">₹${Math.round(item.pricePerNight * (1 - discount / 100))}</span>
+                <span style="font-size: 11px; text-decoration: line-through; color: var(--color-text-muted); font-weight: normal; margin-left: 4px;">₹${item.pricePerNight}</span>
+              ` : `₹${item.pricePerNight || item.pricePerDay}`}
               <span style="font-size: 11px; font-weight: normal; color: var(--color-text-muted);">
                 ${isStay ? '/ night' : '/ day'}
               </span>

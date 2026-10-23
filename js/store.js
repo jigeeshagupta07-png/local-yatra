@@ -10,6 +10,7 @@ const defaultState = {
   saralMode: false,
   preferences: {
     destination: 'manali',
+    travelMonth: new Date().getMonth() + 1,
     budget: 15000,
     days: 3,
     travellers: 2,

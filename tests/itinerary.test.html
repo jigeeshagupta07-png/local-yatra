@@ -17,6 +17,7 @@
 
   <script type="module">
     import { generateItinerary, fetchDestinations } from '/js/itinerary.js';
+    import { getSeason, getSeasonBadgeConfig, render12MonthDemandBar } from '/js/season.js';
 
     const resultsEl = document.getElementById('results');
 
@@ -109,6 +110,30 @@
         'Local Tips Rule: Every day contains a local community tip',
         hasLocalTips,
         `Sample tip: "${seniorPlan.days[0].localTip}"`
+      );
+
+      // Test 6: Phase 16 - Season Engine On-Season
+      const manaliJan = await getSeason('manali', 1);
+      assert(
+        'Phase 16 Season Engine: Manali in Jan is On-Season (high demand)',
+        manaliJan.level === 'high' && manaliJan.isOnSeason === true && manaliJan.alternatives.length > 0,
+        `Level: ${manaliJan.level}, Reason: "${manaliJan.reason}", Alternatives: ${manaliJan.alternatives.join(', ')}`
+      );
+
+      // Test 7: Phase 16 - Season Engine Off-Season
+      const manaliNov = await getSeason('manali', 11);
+      assert(
+        'Phase 16 Season Engine: Manali in Nov is Off-Season (low demand)',
+        manaliNov.level === 'low' && manaliNov.isOffSeason === true,
+        `Level: ${manaliNov.level}, Reason: "${manaliNov.reason}"`
+      );
+
+      // Test 8: Phase 16 - 12-Month Demand Bar rendering
+      const barHtml = render12MonthDemandBar(manaliJan.allMonths, 1);
+      assert(
+        'Phase 16 UI: 12-Month Demand Bar contains all 12 months with accessible labels',
+        barHtml.includes('season-demand-bars') && (barHtml.match(/season-month-col/g) || []).length === 12,
+        `12 month columns correctly generated in bar component`
       );
     }
 

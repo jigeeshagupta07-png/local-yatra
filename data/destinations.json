@@ -7,6 +7,8 @@
       "crowdLevel": "high",
       "tagline": "Cedar forests, tranquil riverside trails, and Himalayan culture",
       "coordinates": { "lat": 32.2396, "lng": 77.1887 },
+      "lat": 32.2396,
+      "lng": 77.1887,
       "activities": [
         {
           "id": "manali-hadimba-temple",
@@ -177,6 +179,8 @@
       "crowdLevel": "high",
       "tagline": "Royal sandstone palaces, block printing heritage, and bazaar aromatics",
       "coordinates": { "lat": 26.9124, "lng": 75.7873 },
+      "lat": 26.9124,
+      "lng": 75.7873,
       "activities": [
         {
           "id": "jaipur-amber-fort",
@@ -331,6 +335,8 @@
       "crowdLevel": "high",
       "tagline": "Timeless ghats, evening Ganga Aarti, and sacred spiritual alleys",
       "coordinates": { "lat": 25.3176, "lng": 82.9739 },
+      "lat": 25.3176,
+      "lng": 82.9739,
       "activities": [
         {
           "id": "varanasi-dashashwamedh-aarti",
@@ -469,6 +475,8 @@
       "crowdLevel": "medium",
       "tagline": "Yoga capital, emerald Himalayan currents, and spiritual footbridges",
       "coordinates": { "lat": 30.0869, "lng": 78.2676 },
+      "lat": 30.0869,
+      "lng": 78.2676,
       "activities": [
         {
           "id": "rishikesh-triveni-ghat",
@@ -607,6 +615,8 @@
       "crowdLevel": "low",
       "tagline": "Granite boulder kingdoms, ancient stone chariots, and coracle rides",
       "coordinates": { "lat": 15.3350, "lng": 76.4600 },
+      "lat": 15.3350,
+      "lng": 76.4600,
       "activities": [
         {
           "id": "hampi-vijaya-vittala",
@@ -745,6 +755,8 @@
       "crowdLevel": "medium",
       "tagline": "Rolling tea carpet hills, misty Neelakurinji slopes, and spice groves",
       "coordinates": { "lat": 10.0889, "lng": 77.0595 },
+      "lat": 10.0889,
+      "lng": 77.0595,
       "activities": [
         {
           "id": "munnar-tea-museum",

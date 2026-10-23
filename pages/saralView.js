@@ -8,6 +8,7 @@ import { store } from '../js/store.js';
 import { speakText, stopSpeech, initSpeechRecognition } from '../js/speech.js';
 import { generateItinerary, fetchDestinations } from '../js/itinerary.js';
 import { renderSaralReviewSummary } from '../js/reviews.js';
+import { getSeason, getCurrentMonth } from '../js/season.js';
 
 let step = 1; // 1 to 5, then 6 for results
 let saralPrefs = {
@@ -21,6 +22,7 @@ let saralPrefs = {
 };
 let saralPlan = null;
 let destinationsList = [];
+let hostsData = { stays: [], guides: [] };
 
 export function renderSaral() {
   const isHi = store.get().language === 'hi';
@@ -85,6 +87,13 @@ export async function initSaralEvents() {
   store.setSaralMode(true);
   destinationsList = await fetchDestinations();
 
+  try {
+    const res = await fetch('/data/hosts.json');
+    if (res.ok) hostsData = await res.json();
+  } catch (e) {
+    console.warn('[Saral] hosts.json error:', e);
+  }
+
   document.getElementById('btn-saral-read')?.addEventListener('click', readCurrentStep);
   document.getElementById('btn-saral-stop')?.addEventListener('click', stopSpeech);
 
@@ -107,7 +116,7 @@ export async function initSaralEvents() {
   renderStep();
 }
 
-function renderStep() {
+async function renderStep() {
   const container = document.getElementById('saral-step-container');
   if (!container) return;
 
@@ -348,7 +357,23 @@ function renderStep() {
     document.getElementById('btn-saral-next-4')?.addEventListener('click', () => { step = 5; renderStep(); readCurrentStep(); });
 
   } else if (step === 5) {
-    // Step 5: Review
+    // Step 5: Review & Seasonal Advice (Phase 16)
+    let seasonInfo = null;
+    try {
+      seasonInfo = await getSeason(saralPrefs.destination, getCurrentMonth());
+    } catch (e) {
+      console.warn('[Saral] Season fetch error:', e);
+    }
+
+    let seasonSentence = '';
+    if (seasonInfo?.isOnSeason) {
+      seasonSentence = isHi ? 'यह व्यस्त मौसम है। जल्दी बुक करें।' : 'This is a busy season. Book early.';
+    } else if (seasonInfo?.isOffSeason) {
+      seasonSentence = isHi ? 'यह शांत मौसम है। यात्रा के लिए अच्छा समय है।' : 'This is a quiet season. Good time to visit.';
+    } else {
+      seasonSentence = isHi ? 'यह सामान्य मौसम है। आरामदायक यात्रा।' : 'This is a moderate season. Comfortable travel.';
+    }
+
     container.innerHTML = `
       <div class="saral-wizard-card">
         <div style="font-size: 1rem; color: #0d5c58; font-weight: 700; margin-bottom: 8px;">
@@ -356,6 +381,19 @@ function renderStep() {
         </div>
         <h1>${isHi ? 'आपकी यात्रा की तैयारी' : 'Your Trip Summary'}</h1>
         <p>${isHi ? 'कृपया जांच लें, क्या सब कुछ सही है:' : 'Please confirm your choices:'}</p>
+
+        <!-- Big Seasonal Sentence Card -->
+        <div style="background: ${seasonInfo?.isOnSeason ? '#fff5f5' : seasonInfo?.isOffSeason ? '#f0fdf4' : '#fffbeb'}; border: 3px solid ${seasonInfo?.isOnSeason ? '#dc2626' : seasonInfo?.isOffSeason ? '#16a34a' : '#d97706'}; border-radius: 16px; padding: 18px 20px; margin: 16px 0; text-align: center;">
+          <div style="font-size: 1.55rem; font-weight: 800; color: ${seasonInfo?.isOnSeason ? '#b91c1c' : seasonInfo?.isOffSeason ? '#15803d' : '#b45309'}; line-height: 1.3;">
+            ${seasonSentence}
+          </div>
+          <div style="font-size: 0.9rem; color: #4b5563; margin-top: 6px;">
+            ${isHi ? 'अनुमानित मौसमी सलाह (General Estimate)' : 'Seasonal Demand Advice (General Estimate)'}
+          </div>
+          <button type="button" class="btn btn-secondary saral-voice-btn" style="margin-top: 12px; display: inline-flex; align-items: center; gap: 6px;" id="btn-saral-read-season">
+            🔊 ${isHi ? 'यह सलाह बोलकर सुनें' : 'Read Aloud This Advice'}
+          </button>
+        </div>
 
         <div style="background: #f7faf9; border: 2px solid #0d5c58; border-radius: 16px; padding: 20px; margin: 20px 0; display: flex; flex-direction: column; gap: 12px;">
           <div style="font-size: 1.25rem;">📍 <strong>${isHi ? 'स्थान:' : 'Destination:'}</strong> ${saralPrefs.destName}</div>
@@ -377,6 +415,10 @@ function renderStep() {
         </div>
       </div>
     `;
+
+    document.getElementById('btn-saral-read-season')?.addEventListener('click', () => {
+      speakText(seasonSentence);
+    });
 
     document.getElementById('btn-saral-back')?.addEventListener('click', () => { step--; renderStep(); readCurrentStep(); });
     document.getElementById('btn-saral-make-plan')?.addEventListener('click', async () => {
@@ -406,15 +448,39 @@ function renderStep() {
     store.setSelectedStay(stay);
     store.setSelectedGuide(guide);
 
+    let seasonInfo = null;
+    try {
+      seasonInfo = await getSeason(saralPrefs.destination, getCurrentMonth());
+    } catch (e) {}
+
+    let seasonSentence = '';
+    if (seasonInfo?.isOnSeason) {
+      seasonSentence = isHi ? 'यह व्यस्त मौसम है। जल्दी बुक करें।' : 'This is a busy season. Book early.';
+    } else if (seasonInfo?.isOffSeason) {
+      seasonSentence = isHi ? 'यह शांत मौसम है। यात्रा के लिए अच्छा समय है।' : 'This is a quiet season. Good time to visit.';
+    } else {
+      seasonSentence = isHi ? 'यह सामान्य मौसम है। आरामदायक यात्रा।' : 'This is a moderate season. Comfortable travel.';
+    }
+
     container.innerHTML = `
       <div class="saral-wizard-card" style="max-width: 900px;">
         <div style="display: inline-block; background: #dcfce7; color: #166534; padding: 6px 14px; border-radius: 12px; font-weight: 700; margin-bottom: 12px;">
           ✓ ${isHi ? 'सरल यात्रा कार्यक्रम तैयार है' : 'Your Simple Accessible Plan is Ready'}
         </div>
 
-        <h1 style="margin-bottom: 12px;">
+        <h1 style="margin-bottom: 8px;">
           ${dest?.name} ${saralPrefs.days}-${isHi ? 'दिवसीय आरामदायक यात्रा' : 'Day Peaceful Journey'}
         </h1>
+
+        <!-- One Big Seasonal Sentence Card -->
+        <div style="background: ${seasonInfo?.isOnSeason ? '#fff5f5' : seasonInfo?.isOffSeason ? '#f0fdf4' : '#fffbeb'}; border: 3px solid ${seasonInfo?.isOnSeason ? '#dc2626' : seasonInfo?.isOffSeason ? '#16a34a' : '#d97706'}; border-radius: 14px; padding: 14px 18px; margin: 12px 0 16px 0; text-align: center;">
+          <div style="font-size: 1.4rem; font-weight: 800; color: ${seasonInfo?.isOnSeason ? '#b91c1c' : seasonInfo?.isOffSeason ? '#15803d' : '#b45309'};">
+            ${seasonSentence}
+          </div>
+          <button type="button" class="btn btn-secondary saral-voice-btn" style="margin-top: 8px; font-size: 0.9rem;" id="btn-saral-read-season-res">
+            🔊 ${isHi ? 'यह सलाह सुनें' : 'Read Aloud This Advice'}
+          </button>
+        </div>
 
         <p style="font-size: 1.15rem; color: #374151;">
           ${isHi 
@@ -478,6 +544,10 @@ function renderStep() {
       </div>
     `;
 
+    document.getElementById('btn-saral-read-season-res')?.addEventListener('click', () => {
+      speakText(seasonSentence);
+    });
+
     const saralRevMount = document.getElementById('saral-reviews-mount');
     if (saralRevMount) {
       renderSaralReviewSummary(saralRevMount, 'stay', stay?.id || 'stay-manali-deodar');
@@ -485,7 +555,7 @@ function renderStep() {
   }
 }
 
-function readCurrentStep() {
+async function readCurrentStep() {
   const isHi = store.get().language === 'hi';
   let speech = '';
 
@@ -498,9 +568,21 @@ function readCurrentStep() {
   } else if (step === 4) {
     speech = isHi ? 'कदम 4: आपको क्या पसंद है? मंदिर दर्शन, प्रकृति, आराम या स्वादिष्ट भोजन?' : 'Step 4: What do you prefer? Temples, Nature, Rest, or Food?';
   } else if (step === 5) {
-    speech = isHi ? `समीक्षा: आपने ${saralPrefs.destName} के लिए ${saralPrefs.days} दिन की यात्रा चुनी है। आगे बढ़ने के लिए बटन दबाएं।` : `Review: You selected ${saralPrefs.destName} for ${saralPrefs.days} days. Tap the button to make your plan.`;
+    let seasonAdvice = '';
+    try {
+      const s = await getSeason(saralPrefs.destination, getCurrentMonth());
+      if (s.isOnSeason) seasonAdvice = isHi ? ' यह व्यस्त मौसम है, जल्दी बुकिंग करें।' : ' This is a busy season, book early.';
+      else if (s.isOffSeason) seasonAdvice = isHi ? ' यह शांत मौसम है, यात्रा के लिए अच्छा समय है।' : ' This is a quiet season, good time to visit.';
+    } catch (e) {}
+    speech = (isHi ? `समीक्षा: आपने ${saralPrefs.destName} के लिए ${saralPrefs.days} दिन की यात्रा चुनी है।` : `Review: You selected ${saralPrefs.destName} for ${saralPrefs.days} days.`) + seasonAdvice;
   } else if (step === 6) {
-    speech = isHi ? 'आपकी सरल यात्रा योजना तैयार है। नीचे बड़ा हरा बटन दबाकर इसे बुक करें।' : 'Your simple plan is ready. Press the big green button to book.';
+    let seasonAdvice = '';
+    try {
+      const s = await getSeason(saralPrefs.destination, getCurrentMonth());
+      if (s.isOnSeason) seasonAdvice = isHi ? ' ध्यान दें: यह व्यस्त मौसम है, जल्दी बुकिंग करें।' : ' Note: This is a busy season, book early.';
+      else if (s.isOffSeason) seasonAdvice = isHi ? ' यह शांत मौसम है, यात्रा के लिए अच्छा समय है।' : ' This is a quiet season, good time to visit.';
+    } catch (e) {}
+    speech = (isHi ? 'आपकी सरल यात्रा योजना तैयार है। नीचे बड़ा हरा बटन दबाकर इसे बुक करें।' : 'Your simple plan is ready. Press the big green button to book.') + seasonAdvice;
   }
 
   speakText(speech);

@@ -6,6 +6,14 @@
 
 import { store } from '../js/store.js';
 import { getReviewsForTarget, calculateRatingSummary } from '../js/reviews.js';
+import { 
+  getSeason, 
+  getSeasonBadgeConfig, 
+  getCurrentMonth, 
+  MONTH_NAMES, 
+  saveHostOffer, 
+  getHostOffers 
+} from '../js/season.js';
 
 let isOwnerLoggedIn = true;
 let hostBookings = [];
@@ -70,6 +78,9 @@ export function renderOwner() {
           </div>
         </div>
       </div>
+
+      <!-- Season Outlook Card Mount (Phase 16) -->
+      <div id="owner-season-outlook-mount" style="margin-bottom: var(--space-8);"></div>
 
       <!-- Demand Insights: Pure SVG Charts (No external libs) -->
       <div style="display: grid; grid-template-columns: 1fr; gap: var(--space-6); margin-bottom: var(--space-8);">
@@ -147,12 +158,20 @@ export function renderOwner() {
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-6); margin-bottom: var(--space-8);">
         <!-- Builder Form -->
         <div class="card">
-          <h3 style="margin-bottom: var(--space-4);">🏷️ Publish Off-Season Offer</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
+            <h3 style="margin: 0;">🏷️ Publish Off-Season Offer</h3>
+            <span class="badge badge-simulated">Demo Offer</span>
+          </div>
           <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-4);">
-            Offers instantly appear on the traveller Stays page with a special discount ribbon.
+            Offers appear on the traveller Stays page with an off-season ribbon during low-demand months.
           </p>
 
           <form id="offer-builder-form">
+            <div class="form-group">
+              <label class="form-label" for="offer-title">Offer Title / Discount Text</label>
+              <input type="text" id="offer-title" class="input-control" value="20% off weekdays" placeholder="e.g., 20% off weekdays" required>
+            </div>
+
             <div class="form-group">
               <label class="form-label" for="offer-discount">Discount Percentage (%)</label>
               <input type="number" id="offer-discount" class="input-control" value="25" min="5" max="50" required>
@@ -171,6 +190,16 @@ export function renderOwner() {
               <div class="form-group">
                 <label class="form-label" for="offer-valid-to">Valid To</label>
                 <input type="date" id="offer-valid-to" class="input-control" value="2026-11-30" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Applicable Off-Season Months</label>
+              <div id="offer-months-selection" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                <label class="checkbox-label" style="font-size: 12px;"><input type="checkbox" name="offer-month" value="11" checked> Nov</label>
+                <label class="checkbox-label" style="font-size: 12px;"><input type="checkbox" name="offer-month" value="3" checked> Mar</label>
+                <label class="checkbox-label" style="font-size: 12px;"><input type="checkbox" name="offer-month" value="7"> Jul</label>
+                <label class="checkbox-label" style="font-size: 12px;"><input type="checkbox" name="offer-month" value="8"> Aug</label>
               </div>
             </div>
 
@@ -396,6 +425,79 @@ export async function initOwnerEvents() {
     }
   }
 
+  // Populate Season Outlook Card (Phase 16)
+  const outlookMount = document.getElementById('owner-season-outlook-mount');
+  if (outlookMount) {
+    try {
+      const currM = getCurrentMonth();
+      const m1 = (currM % 12) + 1;
+      const m2 = ((currM + 1) % 12) + 1;
+      const m3 = ((currM + 2) % 12) + 1;
+
+      const [sCurr, s1, s2, s3] = await Promise.all([
+        getSeason('manali', currM),
+        getSeason('manali', m1),
+        getSeason('manali', m2),
+        getSeason('manali', m3)
+      ]);
+
+      const lowMonths = [s1, s2, s3].filter(s => s.isOffSeason);
+      const suggestionText = lowMonths.length > 0
+        ? `Next ${lowMonths.length === 1 ? 'month (' + lowMonths[0].monthName + ') is' : lowMonths.length + ' months are'} low-demand (${lowMonths.map(m => m.monthName).join(', ')}): publish an off-season offer below to fill your 6 vacant rooms!`
+        : 'Upcoming months are high-demand: ensure advance calendar quotas are open for travellers.';
+
+      outlookMount.innerHTML = `
+        <div class="card" style="border-left: 5px solid var(--color-primary); background: #ffffff;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.5rem;">📅</span>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem;">Destination Season Outlook &bull; Manali</h3>
+                <div style="font-size: var(--text-xs); color: var(--color-text-muted);">
+                  Current season and 3-month forward demand projection. <span class="badge badge-simulated">Estimate</span>
+                </div>
+              </div>
+            </div>
+            <span style="font-size: 11px; color: var(--color-text-muted); font-style: italic;">
+              Estimated from travel trends, not live booking data.
+            </span>
+          </div>
+
+          <!-- 4-Month Cards Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px;">
+            ${[sCurr, s1, s2, s3].map((s, idx) => {
+              const b = getSeasonBadgeConfig(s.level);
+              const isCurrent = idx === 0;
+              return `
+                <div style="background: ${isCurrent ? '#f4fbf7' : '#faf8f5'}; border: 1px solid ${isCurrent ? '#b2dfdb' : '#e2ddd5'}; border-radius: 8px; padding: 10px; text-align: center;">
+                  <div style="font-size: 11px; font-weight: 700; color: ${isCurrent ? 'var(--color-primary)' : 'var(--color-text-muted)'}; margin-bottom: 4px;">
+                    ${s.monthName} ${isCurrent ? '(Now)' : ''}
+                  </div>
+                  <div class="badge ${b.tagClass}" style="font-size: 10px; padding: 2px 6px;">
+                    ${b.icon} ${s.level.toUpperCase()}
+                  </div>
+                  <div style="font-size: 10px; color: var(--color-text-secondary); margin-top: 6px; line-height: 1.2;">
+                    ${s.reason}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Proactive Suggestion Banner -->
+          <div style="background: ${lowMonths.length > 0 ? '#fffbeb' : '#f0fdf4'}; border: 1px solid ${lowMonths.length > 0 ? '#fde68a' : '#bbf7d0'}; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.3rem;">💡</span>
+            <div style="font-size: var(--text-sm); color: #1f2937;">
+              <strong>Strategic Recommendation:</strong> ${suggestionText}
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (e) {
+      console.warn('[Owner] Could not render season outlook:', e);
+    }
+  }
+
   // Live preview update in offer builder
   const discInput = document.getElementById('offer-discount');
   const roomsInput = document.getElementById('offer-rooms');
@@ -418,16 +520,26 @@ export async function initOwnerEvents() {
   document.getElementById('offer-builder-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const titleInput = document.getElementById('offer-title');
+    const checkedMonths = Array.from(document.querySelectorAll('input[name="offer-month"]:checked')).map(cb => Number(cb.value));
+
     const offerPayload = {
       stayId: 'stay-manali-deodar',
       stayName: 'Deodar Woods Family Homestay',
       destination: 'manali',
+      title: titleInput ? titleInput.value : '20% off weekdays',
       discountPercent: Number(discInput.value) || 20,
       roomsOffered: Number(roomsInput.value) || 4,
       validFrom: document.getElementById('offer-valid-from').value,
       validTo: document.getElementById('offer-valid-to').value,
-      message: msgInput.value
+      applicableMonths: checkedMonths.length > 0 ? checkedMonths : [11, 3],
+      message: msgInput.value,
+      isSample: true,
+      tag: 'Demo / Sample Offer'
     };
+
+    // Save to localStorage
+    saveHostOffer(offerPayload);
 
     try {
       const res = await fetch('/api/offers', {
@@ -436,10 +548,12 @@ export async function initOwnerEvents() {
         body: JSON.stringify(offerPayload)
       });
       if (res.ok) {
-        alert('🎉 Off-season offer published successfully! It is now live on the traveller Stays & Guides discovery page.');
+        alert('🎉 Off-season offer published successfully! It is saved to prototype storage and synced to the traveller Stays page.');
+      } else {
+        alert('Offer saved to prototype local storage (Demo)!');
       }
     } catch (err) {
-      alert('Offer saved to prototype session!');
+      alert('Offer saved to prototype local storage (Demo)!');
     }
   });
 }
