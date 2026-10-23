@@ -1,7 +1,8 @@
 /**
- * YatraLocal Trip Planner Form (Phases 2 & 16)
- * Destination picker, seasonal demand insights, month selector,
- * live weather advisories (on-season) & host offers (off-season),
+ * YatraLocal Trip Planner Form (Phases 2, 16 & 17)
+ * India-Wide Place Search (Photon + Nominatim fallback),
+ * Curated vs Community OSM badge, Overpass candidate attractions,
+ * Seasonal demand insights, month selector, live weather advisories,
  * budget slider, day stepper, mood chips, and accessibility needs.
  */
 
@@ -15,6 +16,12 @@ import {
   getCurrentMonth 
 } from '../js/season.js';
 import { getLiveWeather } from '../js/api.js';
+import { 
+  searchPlacesIndia, 
+  getCuratedDestinations, 
+  getPlaceByKey, 
+  getNearbyAttractionsOverpass 
+} from '../js/places.js';
 
 let destinationsData = null;
 
@@ -49,40 +56,51 @@ export function renderPlan() {
       <div style="text-align: center; margin-bottom: var(--space-8);">
         <span class="badge badge-local" style="margin-bottom: 8px;">Step 1 &bull; Trip Preferences</span>
         <h1>Design Your Local Journey</h1>
-        <p style="font-size: var(--text-base); color: var(--color-text-secondary); max-width: 600px; margin: 0 auto;">
-          Tell us where you want to explore, your budget, and the month you wish to travel. We'll balance seasons, avoid crowds, and support local families.
+        <p style="font-size: var(--text-base); color: var(--color-text-secondary); max-width: 620px; margin: 0 auto;">
+          Search ANY place in India or pick a curated region. We'll balance seasons, avoid crowds, and steer travel spend into local communities.
         </p>
       </div>
 
       <div class="card" style="box-shadow: var(--shadow-md); border-radius: var(--radius-xl); padding: var(--space-8);">
         <form id="trip-plan-form" novalidate>
           
-          <!-- Destination Field & Month Selector Row -->
+          <!-- India-Wide Place Search & Travel Month Row (Phase 17) -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-5); margin-bottom: var(--space-4);">
+            
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="plan-destination">
-                Choose Destination <span style="color: var(--color-danger);">*</span>
+              <label class="form-label" for="plan-destination-input">
+                Search Place in India <span style="color: var(--color-danger);">*</span>
               </label>
-              <select id="plan-destination" class="select-control" required>
-                <option value="manali" ${current.destination === 'manali' ? 'selected' : ''}>
-                  Manali (Himachal)
-                </option>
-                <option value="jaipur" ${current.destination === 'jaipur' ? 'selected' : ''}>
-                  Jaipur (Rajasthan)
-                </option>
-                <option value="varanasi" ${current.destination === 'varanasi' ? 'selected' : ''}>
-                  Varanasi (Uttar Pradesh)
-                </option>
-                <option value="rishikesh" ${current.destination === 'rishikesh' ? 'selected' : ''}>
-                  Rishikesh (Uttarakhand)
-                </option>
-                <option value="hampi" ${current.destination === 'hampi' ? 'selected' : ''}>
-                  Hampi (Karnataka)
-                </option>
-                <option value="munnar" ${current.destination === 'munnar' ? 'selected' : ''}>
-                  Munnar (Kerala)
-                </option>
-              </select>
+              
+              <div class="place-search-wrapper">
+                <div style="position: relative;">
+                  <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.15rem; pointer-events: none;">🔍</span>
+                  <input 
+                    type="text" 
+                    id="plan-destination-input" 
+                    class="input-control" 
+                    placeholder="Search any place in India (e.g. Kedarnath, Jaipur, Munnar)..." 
+                    style="padding-left: 44px; padding-right: 36px; font-weight: 600;" 
+                    autocomplete="off"
+                    required
+                  >
+                  <button type="button" id="btn-clear-place" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 18px; color: var(--color-text-muted); cursor: pointer; display: none;" aria-label="Clear place">&times;</button>
+                </div>
+                <div id="plan-search-dropdown" class="search-results-dropdown"></div>
+              </div>
+
+              <!-- Quick Curated Destination Chips -->
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: center;" id="plan-quick-chips">
+                <span style="font-size: 11px; color: var(--color-text-muted); font-weight: 500;">Curated:</span>
+                <button type="button" class="btn-quick-chip" data-id="manali">Manali</button>
+                <button type="button" class="btn-quick-chip" data-id="jaipur">Jaipur</button>
+                <button type="button" class="btn-quick-chip" data-id="varanasi">Varanasi</button>
+                <button type="button" class="btn-quick-chip" data-id="rishikesh">Rishikesh</button>
+                <button type="button" class="btn-quick-chip" data-id="hampi">Hampi</button>
+                <button type="button" class="btn-quick-chip" data-id="munnar">Munnar</button>
+              </div>
+
+              <div id="destination-error" class="form-error">Please search and select a valid Indian destination from the list.</div>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
@@ -94,6 +112,9 @@ export function renderPlan() {
               </select>
             </div>
           </div>
+
+          <!-- Community OSM Status Banner (for non-curated destinations) -->
+          <div id="plan-community-status" style="display: none; margin-bottom: var(--space-4);"></div>
 
           <!-- Seasonal Demand Badge & Disclaimer Mount -->
           <div id="season-badge-mount" style="margin-bottom: var(--space-3);"></div>
@@ -231,7 +252,13 @@ export async function initPlanEvents() {
   const form = document.getElementById('trip-plan-form');
   if (!form) return;
 
-  const destSelect = document.getElementById('plan-destination');
+  const destInput = document.getElementById('plan-destination-input');
+  const dropdown = document.getElementById('plan-search-dropdown');
+  const btnClearPlace = document.getElementById('btn-clear-place');
+  const quickChips = document.getElementById('plan-quick-chips');
+  const communityStatusMount = document.getElementById('plan-community-status');
+  const destError = document.getElementById('destination-error');
+
   const monthSelect = document.getElementById('plan-month');
   const badgeMount = document.getElementById('season-badge-mount');
   const barMount = document.getElementById('season-bar-mount');
@@ -257,14 +284,192 @@ export async function initPlanEvents() {
   const checkWalking = document.getElementById('check-walking');
   const checkWheelchair = document.getElementById('check-wheelchair');
 
-  // Load destination list for coordinates
+  // Load curated destinations
   const destinations = await getDestinationsList();
+  const curatedPlaces = await getCuratedDestinations();
+
+  // Active Selected Place state
+  let currentSelectedPlace = null;
+  let candidateAttractions = [];
+  let searchDebounceTimer = null;
+  let searchAbortController = null;
+
+  function closeDropdown() {
+    if (dropdown) {
+      dropdown.classList.remove('visible');
+      dropdown.innerHTML = '';
+    }
+  }
+
+  function updateQuickChipsActive(activeId) {
+    if (!quickChips) return;
+    quickChips.querySelectorAll('.btn-quick-chip').forEach(btn => {
+      if (btn.dataset.id === activeId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
 
   /**
-   * Updates seasonal demand views (Badge, 12-Month Bar, Card)
+   * Sets the active selected place (Curated or OSM) and re-evaluates views
    */
-  async function updateSeasonality() {
-    const destId = destSelect.value;
+  async function selectPlace(place) {
+    if (!place) return;
+    currentSelectedPlace = place;
+    closeDropdown();
+
+    if (destInput) {
+      destInput.value = place.isCurated ? place.name : `${place.name}, ${place.state || 'India'}`;
+      destError.classList.remove('visible');
+    }
+
+    if (btnClearPlace) {
+      btnClearPlace.style.display = 'block';
+    }
+
+    // Update Quick Chip buttons
+    updateQuickChipsActive(place.isCurated ? place.id : null);
+
+    if (place.isCurated) {
+      // CURATED DESTINATION: Full seasonality, demand bar & offers
+      if (communityStatusMount) {
+        communityStatusMount.style.display = 'none';
+        communityStatusMount.innerHTML = '';
+      }
+      candidateAttractions = [];
+      await updateCuratedSeasonality(place.id);
+    } else {
+      // COMMUNITY OSM DESTINATION: Honest badge, Overpass attractions fetch, live weather
+      await renderCommunityPlace(place);
+    }
+  }
+
+  /**
+   * Renders non-curated OSM place view
+   */
+  async function renderCommunityPlace(place) {
+    const selectedMonth = Number(monthSelect.value) || getCurrentMonth();
+    const monthName = MONTH_NAMES[selectedMonth - 1] || 'Current Month';
+
+    // 1. Community Notice Bar
+    if (communityStatusMount) {
+      communityStatusMount.style.display = 'block';
+      communityStatusMount.innerHTML = `
+        <div class="place-community-card">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4rem;">🌐</span>
+            <div>
+              <strong style="color: #0369a1; font-size: 13px;">Community / OpenStreetMap Data &bull; Details may be incomplete</strong>
+              <div id="plan-overpass-status" style="font-size: 11px; color: var(--color-text-muted); margin-top: 2px;">
+                Scanning real-world monuments & viewpoints within 10 km...
+              </div>
+            </div>
+          </div>
+          <a href="#/place/${encodeURIComponent(place.placeKey)}" target="_blank" class="btn btn-sm btn-secondary" style="white-space: nowrap; font-size: 11px; padding: 4px 10px;">
+            View Place & Map ↗
+          </a>
+        </div>
+      `;
+    }
+
+    // 2. Season Badge Mount
+    if (badgeMount) {
+      badgeMount.innerHTML = `
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 13px; padding: 4px 12px; font-weight: 700;">
+              🌐 Community Destination: ${place.name}
+            </span>
+            <span class="badge badge-simulated" style="font-size: 10px;">OSM Source</span>
+          </div>
+          <span style="font-size: 11px; color: var(--color-text-muted); font-style: italic;">
+            Zero invented hosts, prices or ratings.
+          </span>
+        </div>
+      `;
+    }
+
+    // 3. 12-Month Demand Bar Mount (Honest Fallback)
+    if (barMount) {
+      barMount.innerHTML = `
+        <div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 14px; font-size: 12px; color: var(--color-text-secondary); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+          <div>
+            <strong>Seasonal Demand Outlook:</strong> 12-month demand estimates are currently verified for our 6 pilot regions. For ${place.name}, travel comfortably and check local boards.
+          </div>
+          <span style="font-size: 11px; color: var(--color-text-muted);">&copy; OpenStreetMap contributors</span>
+        </div>
+      `;
+    }
+
+    // 4. Live Weather Forecast Mount (Open-Meteo)
+    if (cardMount) {
+      cardMount.innerHTML = `
+        <div class="card" style="padding: 16px; border-left: 5px solid var(--color-accent); border-radius: var(--radius-md); margin-top: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 1.2rem;">⛅</span>
+              <strong style="color: var(--color-text-main); font-size: 1.05rem;">Live Weather & Travel Advisory for ${place.name}</strong>
+            </div>
+            <span style="font-size: 11px; color: var(--color-text-muted);">Weather data: Open-Meteo</span>
+          </div>
+          <div id="community-weather-box">
+            <div class="weather-skeleton" style="height: 50px; width: 100%;"></div>
+          </div>
+        </div>
+      `;
+
+      getLiveWeather(place.lat, place.lng, place.placeKey).then(weather => {
+        const box = document.getElementById('community-weather-box');
+        if (!box) return;
+        if (weather && weather.available) {
+          const warningHtml = weather.warnings.map(w => `
+            <div style="font-size: 12px; color: ${w.level === 'warning' ? '#b91c1c' : '#0d5c58'}; font-weight: 600; margin-top: 4px;">
+              ${w.icon} ${w.text}
+            </div>
+          `).join('');
+
+          box.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.6rem;">${weather.today.icon}</span>
+                <div>
+                  <strong style="font-size: var(--text-sm);">${weather.today.condition}</strong>
+                  <div style="font-size: 11px; color: var(--color-text-muted);">
+                    Temp: ${weather.today.tempMin}°C – ${weather.today.tempMax}°C &bull; Rain chance: ${weather.today.precipProb}% &bull; Wind: ${weather.today.windMax} km/h
+                  </div>
+                </div>
+              </div>
+            </div>
+            ${warningHtml}
+          `;
+        } else {
+          box.innerHTML = `
+            <div style="font-size: 12px; color: var(--color-text-muted);">
+              ⛅ Live weather not available right now. Tip: Check local hill station advisory boards on arrival.
+            </div>
+          `;
+        }
+      });
+    }
+
+    // 5. Fetch Overpass Nearby Attractions in Background
+    getNearbyAttractionsOverpass(place.lat, place.lng).then(attractions => {
+      candidateAttractions = attractions || [];
+      const statusEl = document.getElementById('plan-overpass-status');
+      if (statusEl) {
+        statusEl.textContent = candidateAttractions.length > 0
+          ? `✓ Found ${candidateAttractions.length} verified monuments, viewpoints & spots from OpenStreetMap`
+          : `No registered monuments in OpenStreetMap within 10 km. A scenic walking tour will be generated.`;
+      }
+    });
+  }
+
+  /**
+   * Updates seasonal demand views for Curated destinations (Badge, 12-Month Bar, Card)
+   */
+  async function updateCuratedSeasonality(destId) {
     const selectedMonth = Number(monthSelect.value) || getCurrentMonth();
     const destMeta = destinations.find(d => d.id === destId);
     const destLat = destMeta?.coordinates?.lat || destMeta?.lat || 32.2396;
@@ -296,13 +501,12 @@ export async function initPlanEvents() {
     if (barMount) {
       barMount.innerHTML = render12MonthDemandBar(season.allMonths, selectedMonth);
 
-      // Attach click events to bars
       barMount.querySelectorAll('.season-month-col').forEach(col => {
         col.addEventListener('click', () => {
           const m = Number(col.dataset.month);
           if (m) {
             monthSelect.value = m;
-            updateSeasonality();
+            updateCuratedSeasonality(destId);
           }
         });
         col.addEventListener('keydown', (e) => {
@@ -311,7 +515,7 @@ export async function initPlanEvents() {
             const m = Number(col.dataset.month);
             if (m) {
               monthSelect.value = m;
-              updateSeasonality();
+              updateCuratedSeasonality(destId);
             }
           }
         });
@@ -322,9 +526,7 @@ export async function initPlanEvents() {
     if (!cardMount) return;
 
     if (season.isOffSeason) {
-      // -------------------------------------------------------------
-      // OFF-SEASON: No weather API call. Highlight lower crowds & host discounts.
-      // -------------------------------------------------------------
+      // OFF-SEASON: Highlight lower crowds & host discounts.
       const offersData = await getOffersForDestination(destId);
       const hostOffers = [
         ...offersData.dynamicOffers,
@@ -384,13 +586,9 @@ export async function initPlanEvents() {
       `;
 
     } else if (season.isOnSeason) {
-      // -------------------------------------------------------------
       // ON-SEASON: Show high-demand warning, smart tips, and alternatives.
-      // Call Open-Meteo only for current/near-future months!
-      // -------------------------------------------------------------
       const isNearFuture = selectedMonth === getCurrentMonth();
 
-      // Skeleton placeholder to prevent layout shift while weather loads
       cardMount.innerHTML = `
         <div class="season-card-on">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
@@ -401,7 +599,6 @@ export async function initPlanEvents() {
             <strong>Peak Season Context (${season.monthName}):</strong> ${season.reason}. Higher footfalls expected across popular spots.
           </p>
 
-          <!-- Tips Grid -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-bottom: 12px;">
             <div style="background: #fff; border: 1px solid #fad2cf; border-radius: 6px; padding: 8px 10px; font-size: 12px;">
               📌 <strong>Book Early:</strong> Homestays sell out 2-3 weeks in advance.
@@ -414,7 +611,6 @@ export async function initPlanEvents() {
             </div>
           </div>
 
-          <!-- Weather Mount (Skeleton first) -->
           <div id="weather-section-mount">
             ${isNearFuture ? `
               <div class="weather-skeleton" style="height: 68px; width: 100%;"></div>
@@ -425,7 +621,6 @@ export async function initPlanEvents() {
             `}
           </div>
 
-          <!-- Less Crowded Alternatives -->
           <div id="alternatives-section-mount" style="margin-top: 14px;"></div>
         </div>
       `;
@@ -461,13 +656,12 @@ export async function initPlanEvents() {
             </div>
           `;
 
-          // Handle switch destination buttons
           altMount.querySelectorAll('.btn-switch-dest').forEach(btn => {
             btn.addEventListener('click', () => {
               const targetDest = btn.dataset.altDest;
-              if (targetDest && destSelect) {
-                destSelect.value = targetDest;
-                updateSeasonality();
+              const foundCurated = curatedPlaces.find(c => c.id === targetDest);
+              if (foundCurated) {
+                selectPlace(foundCurated);
               }
             });
           });
@@ -527,9 +721,7 @@ export async function initPlanEvents() {
       }
 
     } else {
-      // -------------------------------------------------------------
       // SHOULDER SEASON: Balanced footfalls
-      // -------------------------------------------------------------
       cardMount.innerHTML = `
         <div class="season-card-shoulder">
           <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
@@ -544,14 +736,151 @@ export async function initPlanEvents() {
     }
   }
 
-  // Trigger initial seasonality display
-  updateSeasonality();
+  // --- Search Input Autocomplete (Phase 17) ---
+  if (destInput && dropdown) {
+    destInput.addEventListener('input', (e) => {
+      const query = (e.target.value || '').trim();
 
-  // Listeners for destination & month changes
-  destSelect.addEventListener('change', updateSeasonality);
-  monthSelect.addEventListener('change', updateSeasonality);
+      if (btnClearPlace) {
+        btnClearPlace.style.display = query.length > 0 ? 'block' : 'none';
+      }
 
-  // Budget Sync
+      if (query.length < 3) {
+        closeDropdown();
+        return;
+      }
+
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+      if (searchAbortController) searchAbortController.abort();
+
+      searchDebounceTimer = setTimeout(async () => {
+        searchAbortController = new AbortController();
+        try {
+          dropdown.innerHTML = `
+            <div style="padding: 12px 14px; font-size: 12px; color: var(--color-text-muted); display: flex; align-items: center; gap: 8px;">
+              <span>🔍 Searching India-wide places...</span>
+            </div>
+          `;
+          dropdown.classList.add('visible');
+
+          const results = await searchPlacesIndia(query, searchAbortController.signal);
+
+          if (results.length === 0) {
+            dropdown.innerHTML = `
+              <div style="padding: 12px 14px; font-size: 13px; color: var(--color-text-muted);">
+                No matching Indian places found for "${query}". Try another spelling or nearest town.
+              </div>
+            `;
+            return;
+          }
+
+          dropdown.innerHTML = results.map(p => {
+            const locSubtitle = [p.district, p.state].filter(Boolean).join(', ') || 'India';
+            return `
+              <div class="search-result-item" data-key="${p.placeKey}">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 1.2rem;">${p.isCurated ? '🪔' : '📍'}</span>
+                  <div>
+                    <div style="font-weight: 700; font-size: 14px; color: var(--color-text);">${p.name}</div>
+                    <div style="font-size: 11px; color: var(--color-text-muted);">${locSubtitle}</div>
+                  </div>
+                </div>
+                <span class="${p.isCurated ? 'search-badge-curated' : 'search-badge-osm'}">
+                  ${p.isCurated ? '✓ Curated' : 'OSM'}
+                </span>
+              </div>
+            `;
+          }).join('');
+
+          dropdown.querySelectorAll('.search-result-item').forEach(item => {
+            item.addEventListener('click', () => {
+              const key = item.dataset.key;
+              const matched = results.find(r => r.placeKey === key);
+              if (matched) {
+                selectPlace(matched);
+              }
+            });
+          });
+
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            dropdown.innerHTML = `
+              <div style="padding: 12px 14px; font-size: 13px; color: var(--color-text-muted);">
+                Place search temporarily unavailable. Please try again.
+              </div>
+            `;
+          }
+        }
+      }, 400);
+    });
+
+    // Clear Button
+    if (btnClearPlace) {
+      btnClearPlace.addEventListener('click', () => {
+        destInput.value = '';
+        currentSelectedPlace = null;
+        candidateAttractions = [];
+        btnClearPlace.style.display = 'none';
+        closeDropdown();
+        destInput.focus();
+        updateQuickChipsActive(null);
+      });
+    }
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (!destInput.contains(e.target) && !dropdown.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+
+    // Escape key
+    destInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDropdown();
+    });
+  }
+
+  // --- Quick Chips Listener ---
+  if (quickChips) {
+    quickChips.querySelectorAll('.btn-quick-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const matched = curatedPlaces.find(c => c.id === id);
+        if (matched) {
+          selectPlace(matched);
+        }
+      });
+    });
+  }
+
+  // Month select change
+  if (monthSelect) {
+    monthSelect.addEventListener('change', () => {
+      if (currentSelectedPlace) {
+        if (currentSelectedPlace.isCurated) {
+          updateCuratedSeasonality(currentSelectedPlace.id);
+        } else {
+          renderCommunityPlace(currentSelectedPlace);
+        }
+      }
+    });
+  }
+
+  // Initial Pre-selection resolution
+  const initialPrefs = store.get().preferences;
+  if (initialPrefs.selectedPlace) {
+    // Navigated from #/place/:placeKey
+    selectPlace(initialPrefs.selectedPlace);
+  } else {
+    // Default to curated destination from store or 'manali'
+    const defaultDestId = initialPrefs.destination || 'manali';
+    const foundCurated = curatedPlaces.find(c => c.id === defaultDestId) || curatedPlaces[0];
+    if (foundCurated) {
+      selectPlace(foundCurated);
+    }
+  }
+
+  // --- Budget Slider & Input Synchronization ---
   budgetSlider.addEventListener('input', (e) => {
     const val = Number(e.target.value);
     budgetInput.value = val;
@@ -568,7 +897,7 @@ export async function initPlanEvents() {
     }
   });
 
-  // Stepper days
+  // --- Stepper days ---
   let days = Number(daysVal.textContent) || 3;
   btnDaysMinus.addEventListener('click', () => {
     if (days > 1) {
@@ -583,7 +912,7 @@ export async function initPlanEvents() {
     }
   });
 
-  // Stepper travellers
+  // --- Stepper travellers ---
   let travellers = Number(travellersVal.textContent) || 2;
   btnTravellersMinus.addEventListener('click', () => {
     if (travellers > 1) {
@@ -598,8 +927,8 @@ export async function initPlanEvents() {
     }
   });
 
-  // Mood chips multi-select (max 3)
-  const selectedMoods = new Set(store.get().preferences.moods || []);
+  // --- Mood chips multi-select (max 3) ---
+  const selectedMoods = new Set(initialPrefs.moods || []);
   moodButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const mood = btn.dataset.mood;
@@ -619,9 +948,15 @@ export async function initPlanEvents() {
     });
   });
 
-  // Form submit
+  // --- Form submit ---
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+
+    if (!currentSelectedPlace) {
+      destError.classList.add('visible');
+      destInput.focus();
+      return;
+    }
 
     const budget = Number(budgetInput.value);
     if (!budget || budget < 3000 || budget > 100000) {
@@ -631,7 +966,9 @@ export async function initPlanEvents() {
     }
 
     const preferences = {
-      destination: destSelect.value,
+      destination: currentSelectedPlace.isCurated ? currentSelectedPlace.id : currentSelectedPlace.placeKey,
+      selectedPlace: currentSelectedPlace.isCurated ? null : currentSelectedPlace,
+      candidateAttractions: currentSelectedPlace.isCurated ? [] : candidateAttractions,
       travelMonth: Number(monthSelect.value) || getCurrentMonth(),
       budget,
       days,
@@ -645,7 +982,7 @@ export async function initPlanEvents() {
     };
 
     store.setPreferences(preferences);
-    // Route to itinerary
+    // Route to itinerary view
     window.location.hash = '#/itinerary';
   });
 }

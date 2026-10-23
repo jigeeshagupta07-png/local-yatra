@@ -323,10 +323,17 @@ function renderListings() {
   container.innerHTML = '';
 
   if (filtered.length === 0) {
+    const isOsmPlace = !['manali', 'jaipur', 'varanasi', 'rishikesh', 'hampi', 'munnar'].includes(destId);
     container.innerHTML = `
       <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
-        <h3>No matches found</h3>
-        <p style="font-size: 0.95rem; color: var(--color-text-muted);">Try adjusting the price range or removing some filters.</p>
+        <div style="font-size: 2.5rem; margin-bottom: 8px;">${isOsmPlace ? '🌐' : '🔍'}</div>
+        <h3>${isOsmPlace ? 'Community / OpenStreetMap Destination' : 'No matches found'}</h3>
+        <p style="font-size: 0.95rem; color: var(--color-text-muted); max-width: 540px; margin: 8px auto 16px auto; line-height: 1.6;">
+          ${isOsmPlace 
+            ? 'YatraLocal currently lists verified family homestays and guides in our 6 pilot regions. For community-searched destinations, details may be incomplete and we do not invent fake hosts. We recommend booking local guest houses or homestays directly on arrival.'
+            : 'Try adjusting the price range or removing some filters.'}
+        </p>
+        ${isOsmPlace ? '<a href="#/itinerary" class="btn btn-secondary btn-sm">&larr; Return to Itinerary</a>' : ''}
       </div>
     `;
     return;

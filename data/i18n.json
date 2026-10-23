@@ -85,7 +85,12 @@
     "saral_season_moderate": "This is a moderate season. Comfortable travel.",
     "host_season_outlook": "Destination Seasonal Outlook",
     "host_publish_offer": "Publish Off-Season Offer (Demo)",
-    "book_offseason_cta": "Book in off-season"
+    "book_offseason_cta": "Book in off-season",
+    "search_place_placeholder": "Search ANY place in India (e.g. Kedarnath, Gokarna, Munnar)...",
+    "search_place_label": "Search Place in India",
+    "community_data_notice": "Community / OSM Data • Details may be incomplete",
+    "nearby_attractions_title": "Nearby Things to See (Within 10 km)",
+    "osm_attribution": "© OpenStreetMap contributors"
   },
   "hi": {
     "brand": "यात्रालोकल (YatraLocal)",
@@ -173,6 +178,11 @@
     "saral_season_moderate": "यह सामान्य मौसम है। आरामदायक यात्रा।",
     "host_season_outlook": "गंतव्य मौसमी परिदृश्य",
     "host_publish_offer": "ऑफ-सीजन ऑफर जारी करें (डेमो)",
-    "book_offseason_cta": "ऑफ-सीजन में बुक करें"
+    "book_offseason_cta": "ऑफ-सीजन में बुक करें",
+    "search_place_placeholder": "भारत की कोई भी जगह खोजें (उदा. केदारनाथ, गोकर्ण, मुन्नार)...",
+    "search_place_label": "भारत में जगह खोजें",
+    "community_data_notice": "समुदाय / OSM डेटा • विवरण अधूरा हो सकता है",
+    "nearby_attractions_title": "आस-पास देखने योग्य स्थल (10 किमी के भीतर)",
+    "osm_attribution": "© ओपनस्ट्रीटमैप योगदानकर्ता"
   }
 }

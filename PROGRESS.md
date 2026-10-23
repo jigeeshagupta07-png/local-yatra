@@ -117,6 +117,16 @@ Prototype verification checklist covering all 14 development phases for **YatraL
   - [x] Bilingual Support: Complete EN and हिंदी strings in `data/i18n.json`.
   - [x] Zero Netlify: Completely independent native Python serverless backend and vanilla JS.
 
+- [x] **Phase 17: India-Wide Place Search (Photon, Nominatim, Overpass, Wikipedia)**
+  - [x] `/js/places.js`: India-wide place search engine with Photon API autocomplete (bounded to India bbox: `68.1, 6.7, 97.4, 35.7`) and rate-limited Nominatim fallback (1 req/sec throttle, `© OpenStreetMap contributors` attribution). Debounce 400ms, min 3 characters, 5s timeout with `AbortController`, `sessionStorage` caching.
+  - [x] Normalized Place Object: Standard `{ placeKey: "osm:<type>:<id>" | "curated:<id>", name, state, district, lat, lng, source: "osm" | "curated", isCurated: boolean }`.
+  - [x] `#/place/<placeKey>` Detail Page: Interactive Leaflet map, Wikipedia summary overview with source link, Open-Meteo live weather, Overpass API nearby attractions within 10 km (monuments, viewpoints, waterfalls, peaks), and Phase 15 community reviews mount.
+  - [x] Honesty & Accuracy: Explicit "Community / OpenStreetMap data. Details may be incomplete." notice for all non-curated places. Zero invented hosts, prices, or ratings.
+  - [x] Planner Integration (`#/plan`): Autocomplete place search with popular curated pills, live weather, dynamic Overpass candidate attraction gathering, and responsive UI.
+  - [x] LLM & Rule-Based Planner Constraint: Passes ONLY real fetched Overpass nearby attractions as candidate IDs; LLM and server rule engine strictly constrained to verified attractions without hallucinating fake places.
+  - [x] Zero Netlify & Zero Supabase: Operates entirely on native Python `server.py` and client-side browser storage.
+
+
 ---
 
 ## 🔍 How to Test Each Feature

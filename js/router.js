@@ -4,7 +4,7 @@
  * Accessible focus management (moves focus to h1 on route transition)
  */
 
-import { renderHome } from '../pages/home.js';
+import { renderHome, initHomeEvents } from '../pages/home.js';
 import { renderPlan, initPlanEvents } from '../pages/plan.js';
 import { renderItineraryView, initItineraryEvents } from '../pages/itineraryView.js';
 import { renderStaysView, initStaysEvents } from '../pages/staysView.js';
@@ -14,9 +14,10 @@ import { renderOwner, initOwnerEvents } from '../pages/ownerView.js';
 import { renderSos, initSosEvents } from '../pages/sosView.js';
 import { renderTrips, initTripsEvents } from '../pages/tripsView.js';
 import { renderStyleguide } from '../pages/styleguideView.js';
+import { renderPlaceView, initPlaceEvents } from '../pages/placeView.js';
 
 const routes = {
-  '#/': { render: renderHome },
+  '#/': { render: renderHome, init: initHomeEvents },
   '#/plan': { render: renderPlan, init: initPlanEvents },
   '#/itinerary': { render: renderItineraryView, init: initItineraryEvents },
   '#/stays': { render: renderStaysView, init: initStaysEvents },
@@ -44,6 +45,11 @@ export function handleRoute() {
     if (route.init) {
       route.init();
     }
+  } else if (hash.startsWith('#/place/')) {
+    // Dynamic Place Route (Phase 17)
+    const placeKey = decodeURIComponent(hash.slice('#/place/'.length));
+    app.innerHTML = renderPlaceView(placeKey);
+    initPlaceEvents(placeKey);
   } else {
     // Custom 404 Route
     app.innerHTML = `

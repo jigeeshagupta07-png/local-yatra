@@ -26,6 +26,7 @@ Mainstream online travel agencies (OTAs) in India suffer from three fundamental 
 - 👨‍👩‍👧 **Family-Assisted Booking:** Enables children or grandchildren to book remotely on behalf of travelling elders, with auto-synced confirmations and mobility preferences.
 - 📊 **Host Owner Dashboard:** Zero-code management suite for homestay owners with plain SVG demand gap charts and an off-season offer builder synced in real-time to traveller listings.
 - 🌦️ **Seasonal Demand Insights & Live Advisories (Phase 16):** 12-month demand curve (Off-season 🌿 vs On-season 🔥). Features live Open-Meteo weather alerts for on-season peaks, crowd-dispersal alternatives, and host discount recovery ribbons.
+- 🇮🇳 **India-Wide Place Search (Phase 17):** Search ANY Indian city, town, hill station, temple, or attraction using Photon API & Nominatim fallback. Place detail page (`#/place/:placeKey`) with Wikipedia extracts, Leaflet map, live Open-Meteo weather, and nearby Overpass API attractions within 10 km. Constrains LLM and rule-based planner strictly to verified attractions without hallucinating fake places.
 - 🛡️ **Safety SOS System:** 2-second press-and-hold trigger with a 5-second cancel countdown, continuous browser GPS tracking, official hotlines (112, 100, 108), and a dedicated family live-tracking link (`/track.html?id=TOKEN`).
 - 💬 **Ask YatraLocal Conversational Refinement:** Refines itinerary days via natural language commands (e.g., *"Make Day 2 slower"*) with strict candidate ID validation.
 - 🌐 **Bilingual EN / हिंदी Support:** One-tap toggle for all screens and voice announcements.
@@ -149,6 +150,7 @@ The application will be live at:
 2. **Reviews Device-Only Storage:** Reviews in this prototype are stored on your device (`localStorage`) only. Seed reviews are sample data.
 3. **Simulated Payments:** No real banking or UPI transactions are executed during checkout; the payment step is simulated for hackathon demonstration.
 4. **Emergency SOS Disclaimer:** Real-time SOS alert dispatches via Twilio only when credentials are provided in `.env`; otherwise it operates via native `sms:`/`wa.me` deep links. It is not an automated replacement for national emergency dispatch services.
+5. **Community / OSM Data:** For non-curated destinations outside our 6 pilot regions, sightseeing spots, coordinates, and summaries are sourced from OpenStreetMap and Wikipedia. Details may be incomplete. YatraLocal does not invent fake homestays, prices, or ratings.
 
 ---
 

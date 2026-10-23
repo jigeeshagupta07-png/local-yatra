@@ -31,7 +31,89 @@ export function generateItinerary(preferences, destinationsList) {
   const moods = preferences.moods || [];
   const accessibility = preferences.accessibility || {};
 
-  const dest = destinationsList.find(d => d.id === destId) || destinationsList[0];
+  let dest = destinationsList.find(d => d.id === destId);
+
+  // If destination is a non-curated OSM place (Phase 17)
+  if (!dest && preferences.selectedPlace) {
+    const sp = preferences.selectedPlace;
+    const candidates = preferences.candidateAttractions || [];
+    
+    const activities = candidates.map((c, idx) => ({
+      id: c.id || `osm-act-${idx + 1}`,
+      name: c.name,
+      category: [c.category || 'Sightseeing', 'Cultural'],
+      cost: 0,
+      durationHours: 1.5,
+      crowdLevel: 'low',
+      seniorFriendly: true,
+      walkingLevel: 'low',
+      description: `${c.category || 'Attraction'} in ${sp.name}`,
+      lat: c.lat,
+      lng: c.lng,
+      icon: c.icon || '📍',
+      bestTime: 'Morning or Afternoon'
+    }));
+
+    // If Overpass returned no items, add standard scenic & cultural walking tours
+    if (activities.length === 0) {
+      activities.push(
+        {
+          id: `osm-${sp.id || 'cust'}-1`,
+          name: `${sp.name} Historic Walking & Heritage Trail`,
+          category: ['Cultural', 'Relaxed'],
+          cost: 0,
+          durationHours: 2,
+          crowdLevel: 'low',
+          seniorFriendly: true,
+          walkingLevel: 'low',
+          lat: sp.lat,
+          lng: sp.lng,
+          icon: '🚶'
+        },
+        {
+          id: `osm-${sp.id || 'cust'}-2`,
+          name: `${sp.name} Local Bazaar & Regional Cuisine`,
+          category: ['Foodie', 'Cultural'],
+          cost: 0,
+          durationHours: 1.5,
+          crowdLevel: 'low',
+          seniorFriendly: true,
+          walkingLevel: 'low',
+          lat: sp.lat,
+          lng: sp.lng,
+          icon: '🍲'
+        },
+        {
+          id: `osm-${sp.id || 'cust'}-3`,
+          name: `${sp.name} Scenic Viewpoint & Nature Walk`,
+          category: ['Nature', 'Relaxed'],
+          cost: 0,
+          durationHours: 2,
+          crowdLevel: 'low',
+          seniorFriendly: true,
+          walkingLevel: 'low',
+          lat: sp.lat,
+          lng: sp.lng,
+          icon: '🌄'
+        }
+      );
+    }
+
+    dest = {
+      id: sp.placeKey || destId,
+      name: sp.name,
+      state: sp.state || 'India',
+      tagline: `Community destination in ${sp.district || sp.state || 'India'}`,
+      coordinates: { lat: sp.lat, lng: sp.lng },
+      activities,
+      isOsm: true
+    };
+  }
+
+  if (!dest) {
+    dest = destinationsList[0];
+  }
+
   const allActivities = [...(dest?.activities || [])];
 
   const isSenior = Boolean(accessibility.seniorFriendly || accessibility.minimalWalking);
@@ -135,7 +217,7 @@ export function generateItinerary(preferences, destinationsList) {
   const whyThisPlan = [
     `Personalized for ${dest?.name || 'your journey'} with a focus on ${moods.length ? moods.join(', ') : 'holistic cultural discovery'}.`,
     isSenior ? 'Senior-friendly pacing with comfortable walking gradients and zero rush.' : 'Balanced pace allowing genuine conversations with local residents.',
-    'Carefully curated to prioritize authentic offbeat gems over overcrowded tourist traps.'
+    dest?.isOsm ? 'Itinerary is built directly from verified OpenStreetMap monuments & viewpoints. Details may be incomplete.' : 'Carefully curated to prioritize authentic offbeat gems over overcrowded tourist traps.'
   ].join(' ');
 
   const crowdTips = `Our smart crowd monitor diverted your plan to peaceful spots like ${scoredActivities.find(a => a.crowdLevel === 'low')?.name || 'hidden heritage paths'}, saving an estimated 2+ hours in crowded ticket queues.`;

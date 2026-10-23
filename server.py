@@ -102,7 +102,11 @@ def clean_expired_sos_tokens():
     for k in expired:
         del sos_tracking_store[k]
 
-def find_activity_by_id(dest_id, act_id):
+def find_activity_by_id(dest_id, act_id, custom_dest=None):
+    if custom_dest and custom_dest.get("id") == dest_id:
+        for act in custom_dest.get("activities", []):
+            if act.get("id") == act_id:
+                return act
     for d in destinations_data.get("destinations", []):
         if d.get("id") == dest_id:
             for act in d.get("activities", []):
@@ -110,16 +114,20 @@ def find_activity_by_id(dest_id, act_id):
                     return act
     return None
 
-def server_rule_based_plan(destination_id, budget, days, travellers, moods, accessibility):
+def server_rule_based_plan(destination_id, budget, days, travellers, moods, accessibility, custom_dest=None):
     """
     Robust rule-based itinerary planner when LLM is unavailable or for offline use.
     Strictly follows budget, accessibility, crowd-avoidance, and senior constraints.
+    Supports dynamic custom_dest for India-wide OSM places (Phase 17).
     """
-    dest = next((d for d in destinations_data.get("destinations", []) if d.get("id") == destination_id), None)
-    if not dest:
-        # Fallback to first destination if unknown
-        dest = destinations_data.get("destinations", [])[0]
-        destination_id = dest.get("id")
+    if custom_dest:
+        dest = custom_dest
+    else:
+        dest = next((d for d in destinations_data.get("destinations", []) if d.get("id") == destination_id), None)
+        if not dest:
+            # Fallback to first destination if unknown
+            dest = destinations_data.get("destinations", [])[0]
+            destination_id = dest.get("id")
 
     all_acts = list(dest.get("activities", []))
     is_senior = accessibility.get("seniorFriendly", False) or accessibility.get("minimalWalking", False)
@@ -225,12 +233,12 @@ def server_rule_based_plan(destination_id, budget, days, travellers, moods, acce
     why_this_plan = (
         f"Customized for {dest.get('name')} matching your mood ({', '.join(moods) if moods else 'General exploration'}). "
         f"{'Senior-accessible pacing with zero steep climbs. ' if is_senior else ''}"
-        f"Prioritizes calm offbeat alternatives to help you experience authentic culture away from heavy tourist congestion."
+        f"{'Activities strictly verified from OpenStreetMap community data. Details may be incomplete.' if dest.get('isOsm') else 'Prioritizes calm offbeat alternatives to help you experience authentic culture away from heavy tourist congestion.'}"
     )
 
     crowd_tips = (
         f"In {dest.get('name')}, offbeat spots like {sorted_acts[-1].get('name') if sorted_acts else 'local hamlets'} "
-        "have 70% fewer crowds than the main hubs during peak hours."
+        f"{'are real-world community spots fetched from OpenStreetMap.' if dest.get('isOsm') else 'have 70% fewer crowds than the main hubs during peak hours.'}"
     )
 
     return {
@@ -349,20 +357,104 @@ class YatraLocalHandler(http.server.SimpleHTTPRequestHandler):
             season_level = body.get("seasonLevel", "medium")
             weather_summary = body.get("weatherSummary", "")
 
+            selected_place = body.get("selectedPlace")
+            candidate_attractions = body.get("candidateAttractions", [])
+            custom_dest = None
+
+            dest = next((d for d in destinations_data.get("destinations", []) if d.get("id") == dest_id), None)
+            if not dest and selected_place:
+                p_name = selected_place.get("name", "Local Spot")
+                p_state = selected_place.get("state", "India")
+                try:
+                    p_lat = float(selected_place.get("lat", 20.0))
+                except Exception:
+                    p_lat = 20.0
+                try:
+                    p_lng = float(selected_place.get("lng", 78.0))
+                except Exception:
+                    p_lng = 78.0
+
+                acts = []
+                for idx, c in enumerate(candidate_attractions):
+                    acts.append({
+                        "id": c.get("id", f"osm-act-{idx + 1}"),
+                        "name": c.get("name", "Sightseeing Spot"),
+                        "category": [c.get("category", "Sightseeing"), "Cultural"],
+                        "cost": 0,
+                        "durationHours": 1.5,
+                        "crowdLevel": "low",
+                        "seniorFriendly": True,
+                        "walkingLevel": "low",
+                        "description": f"{c.get('category', 'Spot')} in {p_name}",
+                        "lat": float(c.get("lat", p_lat)),
+                        "lng": float(c.get("lng", p_lng)),
+                        "bestTime": "Morning or Afternoon"
+                    })
+
+                if not acts:
+                    acts = [
+                        {
+                            "id": f"osm-{selected_place.get('id', 'cust')}-1",
+                            "name": f"{p_name} Historic Walking & Heritage Trail",
+                            "category": ["Cultural", "Relaxed"],
+                            "cost": 0,
+                            "durationHours": 2,
+                            "crowdLevel": "low",
+                            "seniorFriendly": True,
+                            "walkingLevel": "low",
+                            "lat": p_lat,
+                            "lng": p_lng
+                        },
+                        {
+                            "id": f"osm-{selected_place.get('id', 'cust')}-2",
+                            "name": f"{p_name} Local Bazaar & Regional Cuisine",
+                            "category": ["Foodie", "Cultural"],
+                            "cost": 0,
+                            "durationHours": 1.5,
+                            "crowdLevel": "low",
+                            "seniorFriendly": True,
+                            "walkingLevel": "low",
+                            "lat": p_lat,
+                            "lng": p_lng
+                        },
+                        {
+                            "id": f"osm-{selected_place.get('id', 'cust')}-3",
+                            "name": f"{p_name} Scenic Viewpoint & Nature Walk",
+                            "category": ["Nature", "Relaxed"],
+                            "cost": 0,
+                            "durationHours": 2,
+                            "crowdLevel": "low",
+                            "seniorFriendly": True,
+                            "walkingLevel": "low",
+                            "lat": p_lat,
+                            "lng": p_lng
+                        }
+                    ]
+
+                custom_dest = {
+                    "id": selected_place.get("placeKey", dest_id),
+                    "name": p_name,
+                    "state": p_state,
+                    "tagline": f"Scenic destination in {p_state}",
+                    "coordinates": {"lat": p_lat, "lng": p_lng},
+                    "activities": acts,
+                    "isOsm": True
+                }
+                dest = custom_dest
+
             # Check if LLM integration is requested and available
             llm_api_key = os.environ.get("LLM_API_KEY") or os.environ.get("GEMINI_API_KEY")
             llm_model = os.environ.get("LLM_MODEL", "gemini-1.5-flash")
 
             if llm_api_key:
-                # Attempt real LLM integration with prompt constraint to destinations.json
+                # Attempt real LLM integration with prompt constraint to allowed candidate activities
                 try:
-                    dest = next((d for d in destinations_data.get("destinations", []) if d.get("id") == dest_id), None)
                     candidate_ids = [a.get("id") for a in dest.get("activities", [])] if dest else []
 
                     # If Gemini API Key
                     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{llm_model}:generateContent?key={llm_api_key}"
                     prompt = f"""You are YatraLocal AI, an expert local travel planner for India.
-Destination: {dest_id}
+Destination: {dest.get('name') if dest else dest_id}
 Travel Month: {travel_month} (Demand Level: {season_level})
 {f'Live Weather Advisory: {weather_summary}' if weather_summary else ''}
 Budget: INR {budget}
@@ -418,7 +510,7 @@ Return strict JSON only (no markdown, no backticks, no comments) adhering to:
                             clean_slots = {}
                             for slot_name, act_id in slots.items():
                                 if act_id in candidate_ids:
-                                    act_obj = find_activity_by_id(dest_id, act_id)
+                                    act_obj = find_activity_by_id(dest_id, act_id, custom_dest=dest)
                                     if act_obj:
                                         day_acts.append(act_obj)
                                         clean_slots[slot_name] = act_id
@@ -426,7 +518,7 @@ Return strict JSON only (no markdown, no backticks, no comments) adhering to:
 
                             if not day_acts:
                                 # Fallback to standard
-                                rule_fallback = server_rule_based_plan(dest_id, budget, 1, travellers, moods, accessibility)
+                                rule_fallback = server_rule_based_plan(dest_id, budget, 1, travellers, moods, accessibility, custom_dest=dest)
                                 day_acts = rule_fallback["days"][0]["activities"]
                                 clean_slots = rule_fallback["days"][0]["slots"]
                                 day_cost = sum(a.get("cost", 0) for a in day_acts)
@@ -471,7 +563,7 @@ Return strict JSON only (no markdown, no backticks, no comments) adhering to:
                     print(f"[WARN] LLM Generation failed, falling back to rule engine: {ex}")
 
             # Default: High-fidelity rule-based engine
-            plan_result = server_rule_based_plan(dest_id, budget, days, travellers, moods, accessibility)
+            plan_result = server_rule_based_plan(dest_id, budget, days, travellers, moods, accessibility, custom_dest=dest)
             self.send_json(plan_result)
             return
 

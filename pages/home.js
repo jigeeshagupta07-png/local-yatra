@@ -3,6 +3,8 @@
  * Hero, Problems with Manali Callout, Solutions, Inclusion Strip, Impact Metrics
  */
 
+import { searchPlacesIndia } from '../js/places.js';
+
 export function renderHome() {
   return `
     <div class="landing-page">
@@ -25,6 +27,28 @@ export function renderHome() {
           <p style="font-size: var(--text-base); color: var(--color-text-muted); max-width: 680px; margin: 0 auto var(--space-8) auto; line-height: 1.6;">
             Connecting conscious travellers directly with homestays, small heritage inns, and verified local guides while steering visitors away from overcrowded hotspots.
           </p>
+
+          <!-- India-Wide Place Search Box (Phase 17) -->
+          <div style="max-width: 620px; margin: 0 auto var(--space-8) auto; text-align: left;">
+            <div class="place-search-wrapper">
+              <div style="position: relative;">
+                <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.25rem; pointer-events: none;">🔍</span>
+                <input 
+                  type="text" 
+                  id="home-place-search-input" 
+                  class="input-control" 
+                  placeholder="Search ANY place in India (e.g. Kedarnath, Gokarna, Spiti, Munnar)..." 
+                  style="padding-left: 46px; height: 54px; font-size: var(--text-base); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 2px solid var(--color-border);"
+                  autocomplete="off"
+                >
+              </div>
+              <div id="home-search-dropdown" class="search-results-dropdown"></div>
+            </div>
+            <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+              <span>Type 3+ letters &bull; Search 500,000+ Indian cities, towns & heritage spots</span>
+              <span>&copy; OpenStreetMap contributors</span>
+            </div>
+          </div>
 
           <div style="display: flex; flex-wrap: wrap; gap: var(--space-4); justify-content: center; margin-bottom: var(--space-8);">
             <a href="#/plan" class="btn btn-primary btn-lg" style="box-shadow: 0 4px 14px rgba(13, 92, 88, 0.3);">
@@ -210,3 +234,106 @@ export function renderHome() {
     </div>
   `;
 }
+
+export function initHomeEvents() {
+  const searchInput = document.getElementById('home-place-search-input');
+  const dropdown = document.getElementById('home-search-dropdown');
+  if (!searchInput || !dropdown) return;
+
+  let debounceTimer = null;
+  let currentController = null;
+
+  function closeDropdown() {
+    dropdown.classList.remove('visible');
+    dropdown.innerHTML = '';
+  }
+
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+
+    if (debounceTimer) clearTimeout(debounceTimer);
+    if (currentController) currentController.abort();
+
+    if (query.length < 3) {
+      closeDropdown();
+      return;
+    }
+
+    dropdown.innerHTML = `
+      <div style="padding: 12px 14px; font-size: 13px; color: var(--color-text-muted); display: flex; align-items: center; gap: 8px;">
+        <span class="weather-skeleton" style="width: 16px; height: 16px; border-radius: 50%;"></span>
+        Searching places across India...
+      </div>
+    `;
+    dropdown.classList.add('visible');
+
+    debounceTimer = setTimeout(async () => {
+      currentController = new AbortController();
+      try {
+        const results = await searchPlacesIndia(query, currentController.signal);
+        
+        if (results.length === 0) {
+          dropdown.innerHTML = `
+            <div style="padding: 12px 14px; font-size: 13px; color: var(--color-text-muted);">
+              No matching Indian places found for "${query}". Try another spelling.
+            </div>
+          `;
+          return;
+        }
+
+        dropdown.innerHTML = results.map(p => {
+          const locSubtitle = [p.district, p.state].filter(Boolean).join(', ') || 'India';
+          return `
+            <div class="search-result-item" data-key="${p.placeKey}">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.2rem;">${p.isCurated ? '🪔' : '📍'}</span>
+                <div>
+                  <div style="font-weight: 700; font-size: 14px; color: var(--color-text);">${p.name}</div>
+                  <div style="font-size: 11px; color: var(--color-text-muted);">${locSubtitle}</div>
+                </div>
+              </div>
+              <span class="${p.isCurated ? 'search-badge-curated' : 'search-badge-osm'}">
+                ${p.isCurated ? '✓ Curated' : 'OSM'}
+              </span>
+            </div>
+          `;
+        }).join('');
+
+        // Attach click handlers to items
+        dropdown.querySelectorAll('.search-result-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const key = item.dataset.key;
+            if (key) {
+              closeDropdown();
+              window.location.hash = `#/place/${encodeURIComponent(key)}`;
+            }
+          });
+        });
+
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          dropdown.innerHTML = `
+            <div style="padding: 12px 14px; font-size: 13px; color: var(--color-text-muted);">
+              Place search temporarily unavailable. Please try again.
+            </div>
+          `;
+        }
+      }
+    }, 400);
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  // Handle escape key
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  });
+}
+
