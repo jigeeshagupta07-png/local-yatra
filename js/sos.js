@@ -109,8 +109,12 @@ export function triggerSosWorkflow() {
 
 async function dispatchSosAlert(overlay) {
   const state = store.get();
-  const contacts = state.emergencyContacts || [];
-  const medicalNote = state.medicalNote || 'None specified';
+  const profile = state.userProfile || { name: 'YatraLocal Traveller', phone: '', age: 60, gender: 'Male' };
+  const contacts = (state.emergencyContacts && state.emergencyContacts.length > 0)
+    ? state.emergencyContacts
+    : [{ name: 'Emergency Contact', phone: '112', relationship: 'Emergency' }];
+  const health = state.healthDetails || {};
+  const medicalNote = state.medicalNote || health.criticalNotes || 'None specified';
 
   // Attempt real Geolocation
   let lat = 32.2396;
@@ -141,7 +145,9 @@ async function dispatchSosAlert(overlay) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        travellerName: 'YatraLocal Traveller',
+        travellerName: profile.name || 'YatraLocal Traveller',
+        userProfile: profile,
+        healthDetails: health,
         lat,
         lng,
         contacts,
@@ -172,57 +178,84 @@ async function dispatchSosAlert(overlay) {
   // Start continuous 15s location watcher
   startLocationTracking(trackingToken);
 
-  // Render SOS Active State
-  const firstContact = contacts[0] || { name: 'Emergency Services', phone: '112' };
-  const smsBody = encodeURIComponent(`EMERGENCY: Need immediate help! Location: ${mapsLink} Live Track: ${trackUrl} Note: ${medicalNote}`);
-  const smsHref = `sms:${firstContact.phone}?body=${smsBody}`;
+  // Health summary text for emergency SMS/WhatsApp
+  const healthSnippetParts = [];
+  if (health.bloodGroup && health.bloodGroup !== 'Unknown') healthSnippetParts.push(`Blood: ${health.bloodGroup}`);
+  if (health.conditions?.length) healthSnippetParts.push(`Conditions: ${health.conditions.join(', ')}`);
+  if (health.allergies && health.allergies !== 'None') healthSnippetParts.push(`Allergies: ${health.allergies}`);
+  if (health.criticalNotes) healthSnippetParts.push(`Note: ${health.criticalNotes}`);
+  const healthSnippet = healthSnippetParts.join(' | ');
+
+  const primaryContact = contacts.find(c => c.isPrimary) || contacts[0] || { name: 'Emergency Services', phone: '112' };
+  const alertText = `🚨 EMERGENCY ALERT: ${profile.name || 'Traveller'} needs immediate assistance!\nLocation: ${mapsLink}\nLive GPS Track: ${trackUrl}${healthSnippet ? `\nHealth Info: ${healthSnippet}` : ''}`;
+  const smsBody = encodeURIComponent(alertText);
+  const smsHref = `sms:${primaryContact.phone}?body=${smsBody}`;
   const waHref = `https://wa.me/?text=${smsBody}`;
 
   overlay.innerHTML = `
     <div class="modal-backdrop open" style="z-index: 100000; background: rgba(15, 23, 42, 0.95); overflow-y: auto; padding: 20px 10px;">
       <div class="card" style="max-width: 620px; width: 100%; margin: 20px auto; border: 2px solid #ef4444; box-shadow: 0 25px 50px rgba(0,0,0,0.5); padding: 28px 24px; border-radius: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 2rem;">🚨</span>
-            <h2 style="color: #b91c1c; font-size: 1.5rem; margin: 0;">SOS ALERT DISPATCHED</h2>
+            <div>
+              <h2 style="color: #b91c1c; font-size: 1.45rem; margin: 0;">SOS ALERT DISPATCHED</h2>
+              <div style="font-size: 12px; color: var(--color-text-muted);">Traveller: <strong>${profile.name || 'Traveller'}</strong> (${profile.age || 60} yrs)</div>
+            </div>
           </div>
           <span class="badge ${sosResponse?.realSmsSent ? 'badge-verified' : 'badge-simulated'}">
             ${sosResponse?.realSmsSent ? 'Twilio SMS Sent' : 'Demo / Simulated Alert'}
           </span>
         </div>
 
-        <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+        <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
           <p style="font-size: 0.9rem; color: #991b1b; margin-bottom: 6px;">
             ${sosResponse?.realSmsSent 
               ? 'Real emergency SMS alert dispatched via Twilio to your designated contacts.' 
-              : '<strong>SIMULATED NOTICE:</strong> No real alert has been sent — Demo. For a real emergency, tap the government helpline buttons below.'}
+              : '<strong>SIMULATED NOTICE:</strong> Emergency broadcast generated (Demo). Tap official hotline buttons below for actual emergency services.'}
           </p>
           <div style="font-size: 0.85rem; color: #4b5563;">
             Live Location: <strong>${lat.toFixed(4)}, ${lng.toFixed(4)}</strong> (±${accuracy}m) &bull; <span id="sos-live-time">Updated just now</span>
           </div>
         </div>
 
-        <div style="margin-bottom: 20px; text-align: left;">
+        <!-- Traveller Health Card Snippet -->
+        <div style="background: #ffffff; border: 1.5px solid #e2ddd5; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #0d5c58;">🩺 Attached Health Profile:</strong>
+            ${health.bloodGroup ? `<span style="background: #fee2e2; color: #b91c1c; font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 6px; border: 1px solid #fca5a5;">🩸 ${health.bloodGroup}</span>` : ''}
+          </div>
+          <div style="font-size: 12px; color: #374151; line-height: 1.4;">
+            ${health.conditions?.length ? `<div><strong>Conditions:</strong> ${health.conditions.join(', ')}</div>` : ''}
+            ${health.allergies ? `<div><strong>Allergies:</strong> <span style="color:#b91c1c;">${health.allergies}</span></div>` : ''}
+            ${health.criticalNotes ? `<div style="color: #92400e; margin-top: 2px;"><strong>Note:</strong> "${health.criticalNotes}"</div>` : ''}
+          </div>
+          <div style="text-align: right; margin-top: 6px;">
+            <a href="#/sos" style="font-size: 11px; color: var(--color-primary); text-decoration: underline;" onclick="document.getElementById('sos-modal-overlay').innerHTML=''">⚙️ Edit Health & Contacts</a>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px; text-align: left;">
           <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Emergency Contacts Notified:</h4>
           <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px;">
             ${contacts.map(c => `
-              <li style="padding: 8px 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 0.9rem; display: flex; justify-content: space-between;">
-                <span><strong>${c.name}</strong> (${c.phone})</span>
+              <li style="padding: 8px 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+                <span><strong>${c.name}</strong> (${c.relationship || 'Emergency'} &bull; ${c.phone}) ${c.isPrimary ? '<span style="color:var(--color-primary); font-weight:700;">★</span>' : ''}</span>
                 <a href="tel:${c.phone}" class="btn btn-sm btn-secondary" style="font-size: 11px; min-height: 28px; padding: 2px 8px;">Call</a>
               </li>
             `).join('')}
           </ul>
         </div>
 
-        <div style="margin-bottom: 20px; text-align: left;">
-          <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Family Live Tracking Link:</h4>
+        <div style="margin-bottom: 16px; text-align: left;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 6px;">Family Live Tracking Link:</h4>
           <div style="display: flex; gap: 8px;">
             <input type="text" readonly value="${trackUrl}" class="input-control" style="font-size: 0.85rem;" id="track-url-input">
             <button class="btn btn-secondary" id="btn-copy-track" style="min-width: 90px;">Copy</button>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
           <a href="${smsHref}" class="btn btn-secondary" style="font-size: 0.9rem;">
             💬 Open Native SMS
           </a>
@@ -232,8 +265,8 @@ async function dispatchSosAlert(overlay) {
         </div>
 
         <!-- Official Emergency Hotlines -->
-        <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-bottom: 20px;">
-          <p style="font-size: 0.85rem; font-weight: 600; color: #4b5563; margin-bottom: 10px;">OFFICIAL NATIONAL EMERGENCY DIALERS:</p>
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 14px; margin-bottom: 16px;">
+          <p style="font-size: 0.8rem; font-weight: 700; color: #4b5563; margin-bottom: 8px;">OFFICIAL NATIONAL EMERGENCY DIALERS:</p>
           <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
             <a href="tel:112" class="btn btn-danger" style="flex: 1; min-width: 120px;">📞 Call 112 (All Emergency)</a>
             <a href="tel:100" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🚓 Police 100</a>

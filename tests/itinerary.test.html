@@ -18,6 +18,7 @@
   <script type="module">
     import { generateItinerary, fetchDestinations } from '/js/itinerary.js';
     import { getSeason, getSeasonBadgeConfig, render12MonthDemandBar } from '/js/season.js';
+    import { store } from '/js/store.js';
 
     const resultsEl = document.getElementById('results');
 
@@ -134,6 +135,17 @@
         'Phase 16 UI: 12-Month Demand Bar contains all 12 months with accessible labels',
         barHtml.includes('season-demand-bars') && (barHtml.match(/season-month-col/g) || []).length === 12,
         `12 month columns correctly generated in bar component`
+      );
+
+      // Test 9: Safety SOS Profile & Health Details Storage
+      store.setUserProfile({ name: 'Test Traveller', age: 65, phone: '+91 99999 88888' });
+      store.setEmergencyContacts([{ name: 'Test Contact', phone: '+91 99999 11111', isPrimary: true }]);
+      store.setHealthDetails({ bloodGroup: 'B+', conditions: ['Diabetes'], criticalNotes: 'Carry insulin' });
+      const currentStore = store.get();
+      assert(
+        'SOS Health & Contact Profile: User details and health correctly persisted in store',
+        currentStore.userProfile.name === 'Test Traveller' && currentStore.emergencyContacts.length >= 1 && currentStore.healthDetails.bloodGroup === 'B+',
+        `Name: ${currentStore.userProfile.name}, Blood Group: ${currentStore.healthDetails.bloodGroup}, Contacts: ${currentStore.emergencyContacts.length}`
       );
     }
 

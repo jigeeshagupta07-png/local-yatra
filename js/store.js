@@ -25,11 +25,27 @@ const defaultState = {
   selectedStay: null,
   selectedGuide: null,
   bookings: [],
+  userProfile: {
+    name: 'Ramesh Sharma',
+    age: 62,
+    gender: 'Male',
+    phone: '+91 98765 43210'
+  },
   emergencyContacts: [
-    { name: 'Dr. Ramesh Sharma (Brother)', phone: '+91 98765 43210' },
-    { name: 'Ananya (Daughter)', phone: '+91 91234 56789' }
+    { name: 'Dr. Ramesh Sharma', relationship: 'Brother', phone: '+91 98765 43210', isPrimary: true },
+    { name: 'Ananya Sharma', relationship: 'Daughter', phone: '+91 91234 56789', isPrimary: false }
   ],
-  medicalNote: 'Mild hypertension; carrying prescribed tablets in backpack.',
+  healthDetails: {
+    bloodGroup: 'O+',
+    conditions: ['Hypertension', 'Mild Arthritis'],
+    allergies: 'Penicillin',
+    medications: 'Amlodipine 5mg morning',
+    mobility: 'Cannot climb steep stairs, requires flat ground drop-off',
+    doctorName: 'Dr. K. Patel',
+    doctorPhone: '+91 98765 11111',
+    criticalNotes: 'Mild hypertension; carrying prescribed tablets in backpack front pocket.'
+  },
+  medicalNote: 'Blood: O+. Conditions: Hypertension, Mild Arthritis. Allergies: Penicillin. Carrying prescribed tablets in backpack front pocket.',
   shareLiveLocation: true,
   sosHistory: []
 };
@@ -121,13 +137,33 @@ class Store {
     this.saveState();
   }
 
+  setUserProfile(profile) {
+    this.state.userProfile = { ...(this.state.userProfile || {}), ...profile };
+    this.saveState();
+  }
+
   setEmergencyContacts(contacts) {
     this.state.emergencyContacts = contacts;
     this.saveState();
   }
 
+  setHealthDetails(details) {
+    this.state.healthDetails = { ...(this.state.healthDetails || {}), ...details };
+    // Synchronize legacy medicalNote for full backward compatibility
+    const summary = [
+      details.bloodGroup ? `Blood: ${details.bloodGroup}` : '',
+      details.conditions?.length ? `Conditions: ${details.conditions.join(', ')}` : '',
+      details.allergies ? `Allergies: ${details.allergies}` : '',
+      details.criticalNotes || ''
+    ].filter(Boolean).join('. ');
+    this.state.medicalNote = summary || details.criticalNotes || '';
+    this.saveState();
+  }
+
   setMedicalNote(note) {
     this.state.medicalNote = note;
+    if (!this.state.healthDetails) this.state.healthDetails = {};
+    this.state.healthDetails.criticalNotes = note;
     this.saveState();
   }
 

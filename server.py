@@ -507,6 +507,8 @@ Return strict JSON only (no markdown, no backticks, no comments) adhering to:
         elif path == "/api/sos":
             body = self.read_json_body()
             traveller_name = body.get("travellerName", "Traveller")
+            user_profile = body.get("userProfile", {})
+            health_details = body.get("healthDetails", {})
             lat = body.get("lat", 32.2396)
             lng = body.get("lng", 77.1887)
             contacts = body.get("contacts", [])
@@ -519,6 +521,8 @@ Return strict JSON only (no markdown, no backticks, no comments) adhering to:
             record = {
                 "id": token,
                 "travellerName": traveller_name,
+                "userProfile": user_profile,
+                "healthDetails": health_details,
                 "lat": lat,
                 "lng": lng,
                 "medicalNote": medical_note,

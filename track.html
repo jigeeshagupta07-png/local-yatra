@@ -75,6 +75,30 @@
       </div>
     </div>
 
+    <!-- Health Details & Emergency Contacts Card -->
+    <div class="card" id="health-card" style="margin-bottom: 20px; background: #ffffff; padding: 20px; border-radius: 12px; border: 1.5px solid var(--color-border);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--color-border); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">🩺</span>
+          <strong style="font-size: 1.05rem; color: #0d5c58;">Traveller Medical & Emergency Contacts Card</strong>
+        </div>
+        <span id="blood-group-badge" style="background: #fee2e2; color: #b91c1c; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 8px; border: 1.5px solid #fca5a5;">
+          🩸 Blood: Checking...
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; font-size: 13px; margin-bottom: 14px;" id="health-grid-details">
+        <div>Loading traveller health profile...</div>
+      </div>
+
+      <div style="border-top: 1px dashed var(--color-border); padding-top: 12px;" id="contacts-dial-section">
+        <strong style="font-size: 12px; color: var(--color-text-muted); text-transform: uppercase;">Designated Emergency Contacts:</strong>
+        <div id="contacts-dial-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+          <span style="font-size: 12px; color: var(--color-text-muted);">Checking emergency contacts...</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Live Map Container -->
     <div class="map-wrapper" style="margin-bottom: 24px; box-shadow: var(--shadow-lg);">
       <div id="live-track-map" class="map-container" style="height: 480px;"></div>
@@ -135,6 +159,43 @@
           document.getElementById('traveller-name-display').textContent = rec.travellerName || 'Traveller';
           document.getElementById('medical-display').textContent = 'Medical Note: ' + (rec.medicalNote || 'None specified');
           document.getElementById('last-updated-display').textContent = new Date(rec.lastUpdated).toLocaleTimeString();
+
+          // Populate Health Profile Card
+          const health = rec.healthDetails || {};
+          const contacts = rec.contacts || [];
+
+          const bgBadge = document.getElementById('blood-group-badge');
+          if (bgBadge) {
+            bgBadge.textContent = '🩸 Blood: ' + (health.bloodGroup || 'Not specified');
+          }
+
+          const healthGrid = document.getElementById('health-grid-details');
+          if (healthGrid) {
+            const conditions = health.conditions?.length ? health.conditions.join(', ') : 'None reported';
+            const allergies = health.allergies || 'None reported';
+            const medications = health.medications || 'None reported';
+            const mobility = health.mobility || 'Normal mobility';
+            const doctor = health.doctorName ? `${health.doctorName} (${health.doctorPhone || 'No phone'})` : 'None specified';
+
+            healthGrid.innerHTML = `
+              <div><strong style="color: #374151;">Known Conditions:</strong><div style="margin-top:2px;">${conditions}</div></div>
+              <div><strong style="color: #374151;">Allergies:</strong><div style="color:#b91c1c; font-weight:600; margin-top:2px;">${allergies}</div></div>
+              <div><strong style="color: #374151;">Daily Medications:</strong><div style="margin-top:2px;">${medications}</div></div>
+              <div><strong style="color: #374151;">Mobility Needs:</strong><div style="margin-top:2px;">${mobility}</div></div>
+              <div><strong style="color: #374151;">Family Doctor:</strong><div style="margin-top:2px;">${doctor}</div></div>
+              <div><strong style="color: #92400e;">Critical Note:</strong><div style="margin-top:2px; color:#92400e;">"${health.criticalNotes || rec.medicalNote || 'None'}"</div></div>
+            `;
+          }
+
+          // Populate emergency contacts with direct Call buttons
+          const contactsListEl = document.getElementById('contacts-dial-list');
+          if (contactsListEl && contacts.length > 0) {
+            contactsListEl.innerHTML = contacts.map(c => `
+              <a href="tel:${c.phone}" class="btn btn-sm btn-secondary" style="font-size: 12px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;">
+                📞 Call ${c.name} (${c.relationship || 'Emergency'}: ${c.phone}) ${c.isPrimary ? '★' : ''}
+              </a>
+            `).join('');
+          }
 
           if (rec.safe) {
             const badge = document.getElementById('badge-alert-status');
