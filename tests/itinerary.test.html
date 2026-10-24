@@ -20,6 +20,7 @@
     import { getSeason, getSeasonBadgeConfig, render12MonthDemandBar } from '/js/season.js';
     import { store } from '/js/store.js';
     import { searchPlacesIndia, getCuratedDestinations, getPlaceByKey } from '/js/places.js';
+    import { interpretWeatherCode, render7DayForecastGrid } from '/js/api.js';
 
     const resultsEl = document.getElementById('results');
 
@@ -215,6 +216,36 @@
         'Phase 17 OSM Itinerary: Generated strictly using provided candidate attractions without hallucinating fake places',
         osmPlan.destination.isOsm === true && usedCandidateIds && osmPlan.whyThisPlan.includes('OpenStreetMap'),
         `Destination: ${osmPlan.destination.name}, Activities: ${osmPlan.days[0].activities.map(a => a.name).join(', ')}`
+      );
+
+      // Test 13: 7-Day Weather Forecasting WMO Interpretation
+      const clearSky = interpretWeatherCode(0);
+      const heavyRain = interpretWeatherCode(65);
+      const snowfall = interpretWeatherCode(71);
+      const thunderstorm = interpretWeatherCode(95);
+      assert(
+        'Weather Code Interpreter: Maps WMO codes to correct condition labels and icons',
+        clearSky.icon === '☀️' && heavyRain.icon === '🌧️' && snowfall.icon === '❄️' && thunderstorm.icon === '⛈️',
+        `Clear: ${clearSky.icon} ${clearSky.label}, Rain: ${heavyRain.icon} ${heavyRain.label}, Snow: ${snowfall.icon} ${snowfall.label}, Storm: ${thunderstorm.icon} ${thunderstorm.label}`
+      );
+
+      // Test 14: 7-Day Day-by-Day Forecast Grid Generator
+      const sample7DayForecast = [
+        { date: '2026-10-24', dayName: 'Sat', weatherCode: 0, label: 'Clear Sky', icon: '☀️', tempMax: 24, tempMin: 12, precipProb: 5, windMax: 10 },
+        { date: '2026-10-25', dayName: 'Sun', weatherCode: 1, label: 'Partly Cloudy', icon: '⛅', tempMax: 23, tempMin: 11, precipProb: 15, windMax: 12 },
+        { date: '2026-10-26', dayName: 'Mon', weatherCode: 61, label: 'Rain', icon: '🌧️', tempMax: 19, tempMin: 10, precipProb: 65, windMax: 18 },
+        { date: '2026-10-27', dayName: 'Tue', weatherCode: 0, label: 'Clear Sky', icon: '☀️', tempMax: 21, tempMin: 9, precipProb: 10, windMax: 8 },
+        { date: '2026-10-28', dayName: 'Wed', weatherCode: 1, label: 'Partly Cloudy', icon: '⛅', tempMax: 22, tempMin: 10, precipProb: 20, windMax: 9 },
+        { date: '2026-10-29', dayName: 'Thu', weatherCode: 2, label: 'Partly Cloudy', icon: '⛅', tempMax: 22, tempMin: 11, precipProb: 25, windMax: 11 },
+        { date: '2026-10-30', dayName: 'Fri', weatherCode: 0, label: 'Clear Sky', icon: '☀️', tempMax: 25, tempMin: 13, precipProb: 0, windMax: 7 }
+      ];
+      const gridHtmlEn = render7DayForecastGrid(sample7DayForecast, false);
+      const gridHtmlHi = render7DayForecastGrid(sample7DayForecast, true);
+      const cardCount = (gridHtmlEn.match(/class="weather-day-card/g) || []).length;
+      assert(
+        '7-Day Weather Grid: Correctly generates 7 day cards with min/max temperatures, rain pills, and bilingual support',
+        cardCount === 7 && gridHtmlEn.includes('Today') && gridHtmlHi.includes('आज') && gridHtmlEn.includes('24°') && gridHtmlEn.includes('65%'),
+        `Rendered ${cardCount} cards. Contains Today / आज and 7 daily weather cards.`
       );
     }
 

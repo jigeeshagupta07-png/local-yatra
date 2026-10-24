@@ -15,12 +15,14 @@ import { renderSos, initSosEvents } from '../pages/sosView.js';
 import { renderTrips, initTripsEvents } from '../pages/tripsView.js';
 import { renderStyleguide } from '../pages/styleguideView.js';
 import { renderPlaceView, initPlaceEvents } from '../pages/placeView.js';
+import { renderWeatherView, initWeatherEvents } from '../pages/weatherView.js';
 
 const routes = {
   '#/': { render: renderHome, init: initHomeEvents },
   '#/plan': { render: renderPlan, init: initPlanEvents },
   '#/itinerary': { render: renderItineraryView, init: initItineraryEvents },
   '#/stays': { render: renderStaysView, init: initStaysEvents },
+  '#/weather': { render: renderWeatherView, init: initWeatherEvents },
   '#/saral': { render: renderSaral, init: initSaralEvents },
   '#/booking': { render: renderBooking, init: initBookingEvents },
   '#/owner': { render: renderOwner, init: initOwnerEvents },

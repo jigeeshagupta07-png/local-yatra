@@ -816,5 +816,133 @@ input[type="checkbox"]:checked + .checkbox-custom {
   flex-wrap: wrap;
 }
 
+/* 7-Day Weather Forecasting System */
+.weather-7day-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .weather-7day-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+}
+
+.weather-day-card {
+  background: #ffffff;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 8px;
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  min-width: 105px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.weather-day-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  border-color: var(--color-primary);
+}
+
+.weather-day-card.today {
+  border-color: var(--color-primary);
+  background: #f0fdfa;
+  box-shadow: 0 0 0 1.5px var(--color-primary);
+}
+
+.weather-day-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1px;
+}
+
+.weather-day-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.weather-day-icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.weather-day-cond {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.weather-temp-range {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.weather-temp-max {
+  color: #b91c1c;
+}
+
+.weather-temp-min {
+  color: #0d5c58;
+}
+
+.weather-meta-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.weather-rain-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.weather-rain-pill.high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.weather-wind-pill {
+  background: #f8fafc;
+  color: #475569;
+  border-radius: 4px;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+
 
 

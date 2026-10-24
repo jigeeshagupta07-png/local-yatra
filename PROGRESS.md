@@ -131,6 +131,13 @@ Prototype verification checklist covering all 14 development phases for **YatraL
   - [x] LLM & Rule-Based Planner Constraint: Passes ONLY real fetched Overpass nearby attractions as candidate IDs; LLM and server rule engine strictly constrained to verified attractions without hallucinating fake places.
   - [x] Zero Netlify & Zero Supabase: Operates entirely on native Python `server.py` and client-side browser storage.
 
+- [x] **7-Day Pan-India Weather Forecasting System**
+  - [x] `pages/weatherView.js`: Dedicated 7-day weather forecasting dashboard (`#/weather`) with India-wide search (Photon typeahead), quick presets (Manali, Varanasi, Jaipur, Rishikesh, Goa, Munnar, Leh, Kedarnath, Hampi, Ooty), and browser GPS location detection.
+  - [x] `js/api.js`: `render7DayForecastGrid` generating responsive 7 day-by-day forecast cards (Day/Date, weather icon, condition, min/max temperatures, rain chance %, wind speed, and high-rain alerts) with bilingual English and हिंदी support.
+  - [x] Smart Packing & Travel Guidance: Generates automated clothing and gear recommendations based on the 7-day forecast (woolens for <10°C, rain gear for ≥40% rain chance, breathable cottons for >34°C).
+  - [x] Integration across Planner (`#/plan`) and Place Details (`#/place/:placeKey`): Embedded 7-day forecast cards for immediate trip weather visibility.
+  - [x] Unit Tests in `tests/itinerary.test.html` (Tests 13 & 14) verifying WMO weather interpretation and 7-day grid rendering.
+
 
 ---
 

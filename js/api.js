@@ -218,3 +218,70 @@ export async function getLiveWeather(lat, lng, destinationKey = '') {
     };
   }
 }
+
+/**
+ * Render responsive 7-Day Day-by-Day Forecast Cards HTML
+ * @param {Array} dailyForecast Array of 7-day weather objects
+ * @param {boolean} isHi Hindi locale flag
+ * @returns {string} HTML string
+ */
+export function render7DayForecastGrid(dailyForecast, isHi = false) {
+  if (!dailyForecast || !Array.isArray(dailyForecast) || dailyForecast.length === 0) {
+    return '';
+  }
+
+  const hiDays = {
+    'Sun': 'रवि', 'Mon': 'सोम', 'Tue': 'मंगल', 'Wed': 'बुध',
+    'Thu': 'गुरु', 'Fri': 'शुक्र', 'Sat': 'शनि'
+  };
+
+  return `
+    <div class="weather-7day-container" role="region" aria-label="${isHi ? '7-दिवसीय मौसम पूर्वानुमान' : '7-Day Weather Forecast'}">
+      ${dailyForecast.map((d, idx) => {
+        const isToday = idx === 0;
+        const dayTitle = isToday ? (isHi ? 'आज (Today)' : 'Today') : (isHi ? `${hiDays[d.dayName] || d.dayName}` : d.dayName);
+
+        let formattedDate = '';
+        if (d.date) {
+          try {
+            const dt = new Date(d.date);
+            formattedDate = dt.toLocaleDateString(isHi ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'short' });
+          } catch (e) {
+            formattedDate = d.date;
+          }
+        }
+
+        const isHighRain = (d.precipProb ?? 0) >= 50;
+
+        return `
+          <div class="weather-day-card ${isToday ? 'today' : ''}">
+            <div>
+              <div class="weather-day-name">${dayTitle}</div>
+              <div class="weather-day-date">${formattedDate}</div>
+              <div class="weather-day-icon" aria-hidden="true">${d.icon || '🌤️'}</div>
+              <div class="weather-day-cond" title="${d.label}">${d.label}</div>
+            </div>
+
+            <div>
+              <div class="weather-temp-range">
+                <span class="weather-temp-max" title="${isHi ? 'अधिकतम तापमान' : 'Max Temperature'}">${d.tempMax}°</span>
+                <span style="color: var(--color-text-muted);">/</span>
+                <span class="weather-temp-min" title="${isHi ? 'न्यूनतम तापमान' : 'Min Temperature'}">${d.tempMin}°</span>
+              </div>
+
+              <div class="weather-meta-pills">
+                <span class="weather-rain-pill ${isHighRain ? 'high' : ''}" title="${isHi ? 'बारिश की संभावना' : 'Rain Chance'}">
+                  💧 ${d.precipProb}%
+                </span>
+                <span class="weather-wind-pill" title="${isHi ? 'हवा की गति' : 'Wind Speed'}">
+                  💨 ${d.windMax} km/h
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+

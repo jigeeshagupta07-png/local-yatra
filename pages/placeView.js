@@ -13,7 +13,7 @@
  */
 
 import { getPlaceByKey, getWikipediaSummary, getNearbyAttractionsOverpass } from '../js/places.js';
-import { getLiveWeather } from '../js/api.js';
+import { getLiveWeather, render7DayForecastGrid } from '../js/api.js';
 import { calculateHaversineKm } from '../js/map.js';
 import { renderReviewsSection } from '../js/reviews.js';
 import { store } from '../js/store.js';
@@ -193,31 +193,48 @@ export async function initPlaceEvents(placeKey) {
     }
   });
 
-  // 2. Fetch Live Weather via Open-Meteo
+  // 2. Fetch Live 7-Day Weather via Open-Meteo
   const weatherMount = document.getElementById('place-weather-mount');
   if (weatherMount) {
+    const isHi = store.get().language === 'hi';
     getLiveWeather(currentPlace.lat, currentPlace.lng, currentPlace.id).then(weather => {
       if (weather && weather.available) {
         weatherMount.innerHTML = `
-          <div class="card" style="padding: 16px; border-left: 5px solid var(--color-accent); border-radius: var(--radius-lg);">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.8rem;">${weather.today.icon}</span>
+          <div class="card" style="padding: 18px; border-left: 5px solid var(--color-primary); border-radius: var(--radius-xl); margin-bottom: var(--space-6);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--color-border-subtle); padding-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 2rem;">${weather.today.icon}</span>
                 <div>
-                  <strong style="font-size: 1.05rem;">Current Weather: ${weather.today.condition}</strong>
+                  <div style="font-size: 11px; font-weight: 700; color: var(--color-primary); text-transform: uppercase;">
+                    ${isHi ? 'लाइव 7-दिवसीय मौसम पूर्वानुमान' : 'Live 7-Day Weather Forecast'}
+                  </div>
+                  <strong style="font-size: 1.15rem; color: var(--color-text);">
+                    ${weather.today.condition} &bull; ${weather.today.tempMax}°C / ${weather.today.tempMin}°C
+                  </strong>
                   <div style="font-size: 12px; color: var(--color-text-muted);">
-                    Temp: ${weather.today.tempMin}°C – ${weather.today.tempMax}°C &bull; Precipitation: ${weather.today.precipProb}% &bull; Wind: ${weather.today.windMax} km/h
+                    Rain chance: ${weather.today.precipProb}% &bull; Wind: ${weather.today.windMax} km/h
                   </div>
                 </div>
               </div>
-              <span style="font-size: 11px; color: var(--color-text-muted);">${weather.attribution}</span>
+              <div style="text-align: right;">
+                <span style="font-size: 11px; color: var(--color-text-muted);">${weather.attribution}</span>
+                <div><a href="#/weather" style="font-size: 11px; color: var(--color-primary); text-decoration: underline;">Open Pan-India Weather ↗</a></div>
+              </div>
             </div>
 
             ${weather.warnings.map(w => `
-              <div style="background: #fff8f8; border: 1px solid #fad2cf; border-radius: 6px; padding: 6px 10px; font-size: 12px; color: #b91c1c; font-weight: 600; margin-top: 6px;">
+              <div style="background: ${w.level === 'warning' ? '#fef2f2' : '#f0fdf4'}; border: 1px solid ${w.level === 'warning' ? '#fca5a5' : '#86efac'}; border-radius: 6px; padding: 6px 10px; font-size: 12px; color: ${w.level === 'warning' ? '#b91c1c' : '#166534'}; font-weight: 600; margin-bottom: 10px;">
                 ${w.icon} ${w.text}
               </div>
             `).join('')}
+
+            <!-- 7-Day Forecast Grid Component -->
+            <div style="margin-top: 10px;">
+              <div style="font-size: 12px; font-weight: 700; color: var(--color-text-secondary); margin-bottom: 6px;">
+                📅 ${isHi ? 'आगामी 7 दिनों का मौसम:' : 'Upcoming 7-Day Outlook:'}
+              </div>
+              ${render7DayForecastGrid(weather.dailyForecast, isHi)}
+            </div>
           </div>
         `;
       }

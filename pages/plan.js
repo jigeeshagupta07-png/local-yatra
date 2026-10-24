@@ -15,7 +15,7 @@ import {
   MONTH_NAMES, 
   getCurrentMonth 
 } from '../js/season.js';
-import { getLiveWeather } from '../js/api.js';
+import { getLiveWeather, render7DayForecastGrid } from '../js/api.js';
 import { 
   searchPlacesIndia, 
   getCuratedDestinations, 
@@ -431,18 +431,29 @@ export async function initPlanEvents() {
           `).join('');
 
           box.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1.6rem;">${weather.today.icon}</span>
                 <div>
-                  <strong style="font-size: var(--text-sm);">${weather.today.condition}</strong>
+                  <strong style="font-size: var(--text-sm);">${weather.today.condition} &bull; ${weather.today.tempMax}°C / ${weather.today.tempMin}°C</strong>
                   <div style="font-size: 11px; color: var(--color-text-muted);">
-                    Temp: ${weather.today.tempMin}°C – ${weather.today.tempMax}°C &bull; Rain chance: ${weather.today.precipProb}% &bull; Wind: ${weather.today.windMax} km/h
+                    Rain chance: ${weather.today.precipProb}% &bull; Wind: ${weather.today.windMax} km/h
                   </div>
                 </div>
               </div>
+              <a href="#/weather" style="font-size: 11px; color: var(--color-primary); text-decoration: underline;">
+                Full 7-Day Weather ↗
+              </a>
             </div>
             ${warningHtml}
+
+            <!-- 7-Day Day-by-Day Forecast -->
+            <div style="margin-top: 10px; border-top: 1px dashed var(--color-border); padding-top: 8px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--color-text-secondary); margin-bottom: 6px;">
+                📅 7-Day Trip Weather Outlook:
+              </div>
+              ${render7DayForecastGrid(weather.dailyForecast, store.get().language === 'hi')}
+            </div>
           `;
         } else {
           box.innerHTML = `
@@ -682,22 +693,37 @@ export async function initPlanEvents() {
               `).join('');
 
               weatherMount.innerHTML = `
-                <div style="background: #fff; border: 1px solid #fad2cf; border-radius: var(--radius-sm); padding: 10px 14px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <div style="background: #fff; border: 1px solid #fad2cf; border-radius: var(--radius-md); padding: 12px 14px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <span style="font-size: 1.6rem;">${weather.today.icon}</span>
                       <div>
-                        <strong style="font-size: var(--text-sm);">${weather.today.condition}</strong>
+                        <strong style="font-size: var(--text-sm);">${weather.today.condition} &bull; ${weather.today.tempMax}°C / ${weather.today.tempMin}°C</strong>
                         <div style="font-size: 11px; color: var(--color-text-muted);">
-                          Temp: ${weather.today.tempMin}°C – ${weather.today.tempMax}°C &bull; Rain chance: ${weather.today.precipProb}%
+                          Rain chance: ${weather.today.precipProb}% &bull; Wind: ${weather.today.windMax} km/h
                         </div>
                       </div>
                     </div>
-                    <span style="font-size: 10px; color: var(--color-text-muted);">
-                      ${weather.attribution} ${weather.fromCache ? '(Cached)' : ''}
-                    </span>
+                    <div style="text-align: right;">
+                      <span style="font-size: 10px; color: var(--color-text-muted);">
+                        ${weather.attribution} ${weather.fromCache ? '(Cached)' : ''}
+                      </span>
+                      <div>
+                        <a href="#/weather" style="font-size: 11px; color: var(--color-primary); text-decoration: underline;">
+                          All-India 7-Day Weather ↗
+                        </a>
+                      </div>
+                    </div>
                   </div>
                   ${warningHtml}
+
+                  <!-- 7-Day Day-by-Day Forecast Grid -->
+                  <div style="margin-top: 10px; border-top: 1px dashed #fad2cf; padding-top: 8px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--color-text-secondary); margin-bottom: 6px;">
+                      📅 7-Day Trip Forecast (${dest.name}):
+                    </div>
+                    ${render7DayForecastGrid(weather.dailyForecast, store.get().language === 'hi')}
+                  </div>
                 </div>
               `;
             } else {
