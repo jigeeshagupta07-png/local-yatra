@@ -139,14 +139,33 @@
       );
 
       // Test 9: Safety SOS Profile & Health Details Storage
-      store.setUserProfile({ name: 'Test Traveller', age: 65, phone: '+91 99999 88888' });
-      store.setEmergencyContacts([{ name: 'Test Contact', phone: '+91 99999 11111', isPrimary: true }]);
-      store.setHealthDetails({ bloodGroup: 'B+', conditions: ['Diabetes'], criticalNotes: 'Carry insulin' });
+      store.setUserProfile({ name: 'Ramesh Sharma', age: 62, gender: 'Male', phone: '+91 98765 43210' });
+      store.setEmergencyContacts([
+        { name: 'Ananya Sharma', relationship: 'Daughter', phone: '+91 91234 56789', isPrimary: true },
+        { name: 'Vikram Sharma', relationship: 'Son', phone: '+91 98765 22222', isPrimary: false },
+        { name: 'Dr. K. Patel', relationship: 'Doctor', phone: '+91 98765 11111', isPrimary: false }
+      ]);
+      store.setHealthDetails({
+        bloodGroup: 'B+',
+        conditions: ['Hypertension (High BP)', 'Diabetes'],
+        allergies: 'Penicillin',
+        medications: 'Amlodipine 5mg morning, Metformin 500mg',
+        mobility: 'Ground floor room required',
+        doctorName: 'Dr. K. Patel',
+        doctorPhone: '+91 98765 11111',
+        criticalNotes: 'Carry insulin in front backpack pouch'
+      });
       const currentStore = store.get();
       assert(
-        'SOS Health & Contact Profile: User details and health correctly persisted in store',
-        currentStore.userProfile.name === 'Test Traveller' && currentStore.emergencyContacts.length >= 1 && currentStore.healthDetails.bloodGroup === 'B+',
-        `Name: ${currentStore.userProfile.name}, Blood Group: ${currentStore.healthDetails.bloodGroup}, Contacts: ${currentStore.emergencyContacts.length}`
+        'SOS Health Emergency & Family Contacts Profile: User identity, family members, and medical details correctly persisted in store',
+        currentStore.userProfile.name === 'Ramesh Sharma' &&
+        currentStore.emergencyContacts.length === 3 &&
+        currentStore.emergencyContacts[0].relationship === 'Daughter' &&
+        currentStore.emergencyContacts[0].isPrimary === true &&
+        currentStore.healthDetails.bloodGroup === 'B+' &&
+        currentStore.healthDetails.allergies === 'Penicillin' &&
+        currentStore.healthDetails.doctorName === 'Dr. K. Patel',
+        `Traveller: ${currentStore.userProfile.name}, Primary: ${currentStore.emergencyContacts[0].name} (${currentStore.emergencyContacts[0].relationship}), Blood: ${currentStore.healthDetails.bloodGroup}, Allergies: ${currentStore.healthDetails.allergies}`
       );
 
       // Test 10: Phase 17 - Curated destination search returns 6 pilot regions with isCurated: true

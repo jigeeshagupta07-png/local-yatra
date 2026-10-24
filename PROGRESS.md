@@ -89,6 +89,11 @@ Prototype verification checklist covering all 14 development phases for **YatraL
   - [x] `/track.html?id=TOKEN`: Dedicated family tracking view with live Leaflet map and 15s polling.
   - [x] `/api/track/update` and `/api/track/safe` endpoints replacing Supabase.
   - [x] Zero-backend SMS (`sms:`) and WhatsApp (`wa.me`) deep links.
+  - [x] **Family Member Management & Emergency Medical ID Card**:
+    - Quick family relationship presets (`+ Daughter`, `+ Son`, `+ Spouse`, `+ Brother`, `+ Mother`, `+ Father`, `+ Family Member`) with primary contact designation and max 5 contacts limit.
+    - Comprehensive Medical Emergency Profile: Blood group, chronic illness/condition chips, severe drug & food allergies, regular medications, family physician emergency contact, mobility needs, and critical first-aid instructions.
+    - Digital Emergency Medical ID Card modal with high-contrast health pass styling and print view.
+    - Synchronized with active SOS alert modal, live family tracking link (`/track.html`), and Saral Mode.
 
 - [x] **Phase 14: Final Verification & End-to-End Test**
   - [x] End-to-end user flow verified from Home -> Plan -> Itinerary -> Stays -> Booking -> Owner Dashboard -> SOS.

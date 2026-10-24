@@ -227,7 +227,9 @@ async function dispatchSosAlert(overlay) {
           </div>
           <div style="font-size: 12px; color: #374151; line-height: 1.4;">
             ${health.conditions?.length ? `<div><strong>Conditions:</strong> ${health.conditions.join(', ')}</div>` : ''}
-            ${health.allergies ? `<div><strong>Allergies:</strong> <span style="color:#b91c1c;">${health.allergies}</span></div>` : ''}
+            ${health.allergies ? `<div><strong>Allergies:</strong> <span style="color:#b91c1c; font-weight:600;">${health.allergies}</span></div>` : ''}
+            ${health.medications ? `<div><strong>Medications:</strong> ${health.medications}</div>` : ''}
+            ${health.doctorName ? `<div><strong>Physician:</strong> ${health.doctorName} (${health.doctorPhone || 'No phone'})</div>` : ''}
             ${health.criticalNotes ? `<div style="color: #92400e; margin-top: 2px;"><strong>Note:</strong> "${health.criticalNotes}"</div>` : ''}
           </div>
           <div style="text-align: right; margin-top: 6px;">
@@ -236,14 +238,25 @@ async function dispatchSosAlert(overlay) {
         </div>
 
         <div style="margin-bottom: 16px; text-align: left;">
-          <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Emergency Contacts Notified:</h4>
+          <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Family & Emergency Contacts Notified:</h4>
           <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px;">
-            ${contacts.map(c => `
-              <li style="padding: 8px 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
-                <span><strong>${c.name}</strong> (${c.relationship || 'Emergency'} &bull; ${c.phone}) ${c.isPrimary ? '<span style="color:var(--color-primary); font-weight:700;">★</span>' : ''}</span>
-                <a href="tel:${c.phone}" class="btn btn-sm btn-secondary" style="font-size: 11px; min-height: 28px; padding: 2px 8px;">Call</a>
+            ${contacts.map(c => {
+              const cleanDigits = (c.phone || '').replace(/[^0-9]/g, '');
+              const waContactHref = cleanDigits ? `https://wa.me/${cleanDigits.length === 10 ? '91' + cleanDigits : cleanDigits}?text=${smsBody}` : waHref;
+              return `
+              <li style="padding: 8px 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <span>
+                  <strong>${c.name}</strong> 
+                  <span style="color: var(--color-text-muted); font-size: 11px;">(${c.relationship || 'Family'} &bull; ${c.phone})</span>
+                  ${c.isPrimary ? '<span style="color: #16a34a; font-weight: 700; margin-left: 4px;">★ Primary</span>' : ''}
+                </span>
+                <div style="display: flex; gap: 6px;">
+                  <a href="tel:${c.phone}" class="btn btn-sm btn-primary" style="font-size: 11px; min-height: 28px; padding: 2px 8px;">📞 Call</a>
+                  <a href="${waContactHref}" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="font-size: 11px; min-height: 28px; padding: 2px 8px; color: #16a34a; border-color: #86efac;">🟢 WA</a>
+                </div>
               </li>
-            `).join('')}
+              `;
+            }).join('')}
           </ul>
         </div>
 

@@ -108,9 +108,9 @@ export async function initSaralEvents() {
 
   document.getElementById('btn-saral-call-family')?.addEventListener('click', () => {
     const contacts = store.get().emergencyContacts || [];
-    const first = contacts[0] || { name: 'Family Contact', phone: '+91 98765 43210' };
-    speakText(`Calling ${first.name}`);
-    window.location.href = `tel:${first.phone}`;
+    const primary = contacts.find(c => c.isPrimary) || contacts[0] || { name: 'Family Contact', phone: '+91 98765 43210' };
+    speakText(`Calling ${primary.name}`);
+    window.location.href = `tel:${primary.phone}`;
   });
 
   renderStep();
